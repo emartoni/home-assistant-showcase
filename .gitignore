@@ -1,0 +1,19 @@
+# Arquivos sensíveis (proteção extra, mesmo que não devessem chegar aqui)
+secrets.yaml
+*.token
+*.key
+*.pem
+.env
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos temporários e de backup
+*.tmp
+*.bak
+*.swp
+
+# Pastas de ambiente/editor
+.vscode/
+.idea/
