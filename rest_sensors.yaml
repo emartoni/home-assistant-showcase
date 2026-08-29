@@ -1,0 +1,65 @@
+# ============================================================
+#  TARIFA ENERGIA (Rest)
+#  - preco_kwh_raw: retorna o preço do kWh (Elektro) via REST
+#  - bandeira_tarifaria_raw: retorna JSON com bandeira + valor adicional
+#  Observação:
+#   - Normaliza vírgula para ponto e remove espaços para garantir estado numérico
+# ============================================================
+
+# Recupera o preço do kWh utilizando a ELEKTRO
+- resource: "https://dadosabertos.aneel.gov.br/pt_BR/api/3/action/datastore_search?resource_id=fcf2906c-7c32-4b9b-a637-054e7a5234f4&limit=1&filters=%7B%22SigAgente%22%3A%22ELETROPAULO%22%2C%22DscBaseTarifaria%22%3A%22Tarifa+de+Aplica%C3%A7%C3%A3o%22%2C%22DscClasse%22%3A%22Residencial%22%2C%22DscModalidadeTarifaria%22%3A%22Convencional%22%2C%22DscSubClasse%22%3A%22Residencial%22%2C%22DscDetalhe%22%3A%22N%C3%A3o+se+aplica%22%2C%22DscSubGrupo%22%3A%22B1%22%7D&sort=DatFimVigencia+desc&fields=VlrTUSD%2CVlrTE%2CDscUnidadeTerciaria%2C_id&records_format=lists"
+  method: GET
+  scan_interval: 21600
+  timeout: 300
+  headers:
+    User-Agent: "Mozilla/5.0 (compatible; HomeAssistant)"
+    Accept: "application/json"
+  sensor:
+    - name: "Preço kWh Raw"
+      unique_id: preco_kwh_raw
+      icon: mdi:currency-brl
+      unit_of_measurement: "R$/kWh"
+      value_template: >
+        {% set records = value_json.result.records %}
+        {% if records and records | length > 0 %}
+          {% set tusd = records[0][0] | string | replace(',', '.') | float(0) %}
+          {% set te   = records[0][1] | string | replace(',', '.') | float(0) %}
+          {% set unit = records[0][2] | string %}
+          {% set soma = tusd + te %}
+          {% if unit == 'MWh' %}
+            {{ (soma / 1000) | round(6) }}
+          {% else %}
+            {{ soma | round(6) }}
+          {% endif %}
+        {% else %}
+          0
+        {% endif %}
+
+# Recupera a bandeira e o valor adicional (JSON)
+- resource_template: >
+    https://dadosabertos.aneel.gov.br/pt_BR/api/3/action/datastore_search?resource_id=0591b8f6-fe54-437b-b72b-1aa2efd46e42&limit=1&q={{ now().strftime('%Y-%m') }}&sort=DatCompetencia%20desc
+  method: GET
+  scan_interval: 21600
+  timeout: 300
+  headers:
+    User-Agent: "Mozilla/5.0 (compatible; HomeAssistant)"
+    Accept: "application/json"
+  sensor:
+    - name: "Bandeira Tarifária Raw"
+      unique_id: bandeira_tarifaria_raw
+      icon: mdi:flag-variant-plus
+      unit_of_measurement: "R$/kWh"
+      json_attributes_path: "$.result.records[0]"
+      json_attributes:
+        - NomBandeiraAcionada
+        - DatCompetencia
+        - VlrAdicionalBandeira
+      value_template: >
+        {% set records = value_json.result.records %}
+        {% if records and records | length > 0 %}
+          {% set r = records[0] %}
+          {% set valor = r.VlrAdicionalBandeira | string | replace(',', '.') | float(0) %}
+          {{ (valor / 1000) | round(6) }}
+        {% else %}
+          0
+        {% endif %}

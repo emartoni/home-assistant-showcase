@@ -1,0 +1,119 @@
+# ============================================================
+#  CAMERAS (Switch group counters)
+#  Base: switch.grp_cameras / switch.grp_cameras_fachada
+# ============================================================
+
+- sensor:
+    - name: "Total Cameras"
+      unique_id: total_cameras
+      icon: mdi:cctv
+      unit_of_measurement: "câmeras"
+      state_class: measurement
+      state: >
+        {{ expand('switch.grp_cameras') | list | count }}
+
+- sensor:
+    - name: "Total Cameras On"
+      unique_id: total_cameras_on
+      icon: mdi:cctv
+      unit_of_measurement: "câmeras"
+      state_class: measurement
+      state: >
+        {% set on = expand('switch.grp_cameras') 
+            | rejectattr('state', 'in', ['unavailable', 'unknown']) 
+            | selectattr('state', 'eq', 'on') 
+            | list | count %}
+        {{on}}
+
+- sensor:
+    - name: "Total Cameras Off"
+      unique_id: total_cameras_off
+      icon: mdi:cctv-off
+      unit_of_measurement: "câmeras"
+      state_class: measurement
+      state: >
+        {% set total = expand('switch.grp_cameras') | list | count %}
+        {% set on = expand('switch.grp_cameras') | selectattr('state', 'eq', 'on') | list | count %}
+        {{ [total - on, 0]|max }}
+        
+- sensor:
+    - name: "Total Cameras Off Frente"
+      unique_id: total_cameras_off_frente
+      icon: mdi:cctv-off
+      unit_of_measurement: "câmeras"
+      state_class: measurement
+      state: >
+        {% set total = expand('switch.grp_cameras_fachada') | list | count %}
+        {% set on = expand('switch.grp_cameras_fachada') | selectattr('state', 'eq', 'on') | list | count %}
+        {{ [total - on, 0]|max }}
+        
+- sensor:
+    - name: "Total Cameras Off Quintal"
+      unique_id: total_cameras_off_quintal
+      icon: mdi:cctv-off
+      unit_of_measurement: "câmeras"
+      state_class: measurement
+      state: >
+        {% set total = expand('switch.grp_camera_quintal') | list | count %}
+        {% set on = expand('switch.grp_camera_quintal') | selectattr('state', 'eq', 'on') | list | count %}
+        {{ [total - on, 0]|max }}
+
+# Lista de câmeras offline
+- sensor:
+    - name: "Cameras Offline Lista"
+      unique_id: cameras_offline_lista
+      icon: mdi:cctv-off
+      state: >
+        {% set off = expand('switch.grp_cameras') 
+            | selectattr('state', 'in', ['unavailable', 'unknown'])
+            | map(attribute='name') 
+            | list %}
+        {{ off | join(', ') if off | count > 0 else 'Nenhuma' }}
+
+# ============================================================
+#  SWITCHES (Switch group counters)
+#  Base: switch.grp_switches
+# ============================================================
+
+- sensor:
+    - name: "Total Switches"
+      unique_id: total_switches
+      icon: mdi:power-plug-outline
+      unit_of_measurement: "switches"
+      state_class: measurement
+      state: >
+        {{ expand('switch.grp_switches') | list | count }}
+
+- sensor:
+    - name: "Total Switches On"
+      unique_id: total_switches_on
+      icon: mdi:power-plug
+      unit_of_measurement: "switches"
+      state_class: measurement
+      state: >
+        {{ expand('switch.grp_switches') | selectattr('state', 'eq', 'on') | list | count }}
+
+- sensor:
+    - name: "Total Switches Unavailable"
+      unique_id: total_switches_unavailable
+      icon: mdi:power-plug-off-outline
+      unit_of_measurement: "switches"
+      state_class: measurement
+      state: >
+        {{
+          expand('switch.grp_switches')
+          | selectattr('state', 'in', ['unavailable', 'unknown'])
+          | list | count
+        }}
+
+- sensor:
+    - name: "Total Switches Off"
+      unique_id: total_switches_off
+      icon: mdi:power-plug-off
+      unit_of_measurement: "switches"
+      state_class: measurement
+      state: >
+        {% set total = expand('switch.grp_switches') | list | count %}
+        {% set on = expand('switch.grp_switches') | selectattr('state', 'eq', 'on') | list | count %}
+        {% set bad = expand('switch.grp_switches') | selectattr('state', 'in', ['unavailable','unknown']) | list | count %}
+        {{ [total - on - bad, 0] | max }}

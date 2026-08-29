@@ -1,0 +1,15 @@
+# ============================================================
+#  UPDATES
+#  - Total de updates disponíveis (update.* com state == 'on')
+# ============================================================
+- sensor:
+    - name: "Total Updates Available"
+      unique_id: total_updates_available
+      icon: mdi:cellphone-arrow-down
+      state_class: measurement
+      state: >
+        {{
+          states.update
+          | selectattr('state', 'eq', 'on')
+          | list | count
+        }}

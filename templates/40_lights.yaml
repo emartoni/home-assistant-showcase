@@ -1,0 +1,50 @@
+# ============================================================
+#  LIGHTS - CONTADORES (base: light.grp_lights)
+#  - Total
+#  - Ligadas (on)
+#  - Desligadas (calculado)
+#  - Indisponíveis (unavailable + unknown)
+# ============================================================
+
+- sensor:
+    - name: "Total Lights"
+      unique_id: total_lights
+      icon: mdi:lightbulb-group-outline
+      unit_of_measurement: "luzes"
+      state_class: measurement
+      state: >
+        {{ expand('light.grp_lights') | list | count }}
+
+- sensor:
+    - name: "Total Lights On"
+      unique_id: total_lights_on
+      icon: mdi:lightbulb-group
+      unit_of_measurement: "luzes"
+      state_class: measurement
+      state: >
+        {{ expand('light.grp_lights') | selectattr('state','eq','on') | list | count }}
+
+- sensor:
+    - name: "Total Lights Unavailable"
+      unique_id: total_lights_unavailable
+      icon: mdi:lightbulb-group-off-outline
+      unit_of_measurement: "luzes"
+      state_class: measurement
+      state: >
+        {{
+          expand('light.grp_lights')
+          | selectattr('state','in',['unavailable','unknown'])
+          | list | count
+        }}
+
+- sensor:
+    - name: "Total Lights Off"
+      unique_id: total_lights_off
+      icon: mdi:lightbulb-group-off
+      unit_of_measurement: "luzes"
+      state_class: measurement
+      state: >
+        {% set total = expand('light.grp_lights') | list | count %}
+        {% set on = expand('light.grp_lights') | selectattr('state','eq','on') | list | count %}
+        {% set bad = expand('light.grp_lights') | selectattr('state','in',['unavailable','unknown']) | list | count %}
+        {{ [total - on - bad, 0] | max }}

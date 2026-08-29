@@ -1,0 +1,33 @@
+# ============================================================
+#  BATTERIAS (base: sensor.grp_sensor_battery)
+#  - Total de sensores de bateria
+#  - Baterias baixas (<20%)
+#  - Indisponíveis (unknown/unavailable) [opcional, recomendado]
+# ============================================================
+
+# Total de baterias (quantidade de entidades no grupo)
+- sensor:
+    - name: "Total Sensor Batteries"
+      unique_id: total_sensor_batteries
+      icon: mdi:battery-outline
+      unit_of_measurement: "sensores"
+      state_class: measurement
+      state: >
+        {{ expand('sensor.grp_sensor_battery') | map(attribute='state') | map('float') | list | count }}
+
+# Baterias com menos de 20% (ignorando unknown/unavailable)
+- sensor:
+    - name: "Total Sensor Low Batteries"
+      unique_id: total_sensor_low_batteries
+      icon: mdi:battery-alert
+      unit_of_measurement: "sensores"
+      state_class: measurement
+      state: >
+        {{
+          expand('sensor.grp_sensor_battery')
+          | map(attribute='state')
+          | select('is_number')
+          | map('float')
+          | select('lessthan', 20)
+          | list | count
+        }}

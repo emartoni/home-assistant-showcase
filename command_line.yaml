@@ -1,0 +1,23 @@
+# command_line.yaml
+# Sensores que executam comandos do sistema operacional para obter seus valores.
+# Incluído no configuration.yaml via: command_line: !include command_line.yaml
+# Referência: https://www.home-assistant.io/integrations/command_line/
+
+# Lê o JSON gerado pelo pyscript atualizar_preco_gasolina (anp_preco_araras.py)
+# e expõe o preço médio da gasolina em Araras/SP como sensor.
+# O sensor é atualizado manualmente pelo pyscript via homeassistant.update_entity
+# ao final de cada execução bem-sucedida.
+# scan_interval alto para evitar polling desnecessário (atualização é sob demanda).
+- sensor:
+    name: "Gasolina Média Araras (ANP)"
+    unique_id: gasolina_media_araras_anp
+    command: "cat /config/pyscript/anp_preco.json"
+    value_template: >
+      {% if value_json is defined and value_json.preco_medio is defined %}
+        {{ value_json.preco_medio }}
+      {% else %}
+        unavailable
+      {% endif %}
+    unit_of_measurement: "R$/L"
+    icon: mdi:gas-station
+    scan_interval: 86400  # 24 horas — atualização real é feita pelo pyscript

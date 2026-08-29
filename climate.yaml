@@ -1,0 +1,43 @@
+# ============================================================
+#  RPI COOLING FAN (Generic Thermostat)
+#  Objetivo:
+#    - Controlar o fan (switch) baseado na temperatura do CPU do Raspberry Pi
+#  Observações:
+#    - ac_mode: true => comportamento de resfriamento (liga quando acima do setpoint)
+#    - Tolerâncias e ciclo mínimo ajudam a evitar liga/desliga constante
+#    - Certifique-se que o sensor de temperatura está em °C
+# ============================================================
+- platform: generic_thermostat
+  name: RPI Cooling Fan Controller
+  unique_id: rpi_cooling_fan_controller
+
+  # Atuador (fan)
+  heater: switch.rpi_cooling_fan
+
+  # Sensor de temperatura (CPU)
+  target_sensor: sensor.system_monitor_processor_temperature
+
+  # Limites operacionais (°C)
+  min_temp: 30
+  max_temp: 70
+
+  # Modo resfriamento: liga o fan quando passar do alvo + tolerância
+  ac_mode: true
+
+  # Setpoint padrão (°C)
+  target_temp: 50
+
+  # Histerese (°C) - reduz “thrashing”
+  cold_tolerance: 1.0
+  hot_tolerance: 2.0
+
+  # Tempo mínimo ligado/desligado antes de permitir nova troca
+  min_cycle_duration:
+    seconds: 300
+
+  # Mantém o estado sincronizado periodicamente
+  keep_alive:
+    minutes: 5
+
+  # Estado inicial após restart
+  initial_hvac_mode: cool

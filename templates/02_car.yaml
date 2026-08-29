@@ -1,0 +1,244 @@
+# ============================================================
+#  CAR (Template Sensor)
+# ============================================================
+
+# ------------------------------------------------------------
+#  Local Inteligente
+# ------------------------------------------------------------
+- sensor:
+  - name: "Creta Local Inteligente"
+    unique_id: creta_local_inteligente
+    icon: >
+        {% set s = states('sensor.creta_local_inteligente') %}
+        {% set zone_entity = state_attr('sensor.creta_local_inteligente', 'zone_entity') %}
+
+        {% if s == 'Em casa' %}mdi:home
+        {% elif s == 'Em trânsito' %}mdi:car
+        {% elif zone_entity %}
+            {{ state_attr(zone_entity, 'icon') }}
+        {% elif s == 'Hospital' %}mdi:hospital
+        {% elif s == 'Restaurante' %}mdi:food
+        {% elif s == 'Posto' %}mdi:gas-station
+        {% elif s == 'Farmácia' %}mdi:pharmacy
+        {% elif s == 'Escola' %}mdi:school
+        {% elif s == 'Banco' %}mdi:bank
+        {% elif s == 'Supermercado' %}mdi:cart
+        {% else %}mdi:map-marker-alert
+        {% endif %}
+    state: >
+      {% set tracker = states.device_tracker.creta_location %}
+      {% set addr = state_attr('sensor.creta_creta_creta_geocoded_location', 'address') %}
+      {% set raw = states('sensor.creta_creta_creta_geocoded_location') | lower %}
+
+      {# 🏠 EM CASA #}
+      {% if is_state('device_tracker.creta_location', 'home') %}Em casa
+
+      {# 🚗 SEM LOCALIZAÇÃO VÁLIDA #}
+      {% elif raw in ['unknown','unavailable','none',''] %}Em trânsito
+
+      {# 📍 AMENITY DETECTADO #}
+      {% elif addr and addr.amenity is defined and addr.amenity %}
+        {% set amenity = addr.amenity | lower %}
+        {% if 'hospital' in amenity %}Hospital
+        {% elif 'restaurant' in amenity %}Restaurante
+        {% elif 'school' in amenity %}Escola
+        {% elif 'fuel' in amenity %}Posto
+        {% elif 'pharmacy' in amenity %}Farmácia
+        {% elif 'bank' in amenity %}Banco
+        {% elif 'market' in amenity or 'supermarket' in amenity %}Supermercado
+        {# 🗺️ AMENITY DESCONHECIDO → TENTA ZONA #}
+        {% else %}
+          {% set zona = namespace(
+            nome='Outro',
+            entity=''
+          ) %}
+          {% for z in states.zone %}
+            {% set dist = distance(
+                tracker.attributes.latitude,
+                tracker.attributes.longitude,
+                z.attributes.latitude,
+                z.attributes.longitude
+            ) * 1000 %}
+            {% if dist <= z.attributes.radius %}
+              {% set zona.nome = z.name %}
+              {% set zona.entity = z.entity_id %}
+            {% endif %}
+          {% endfor %}
+          {{ zona.nome }}
+        {% endif %}
+      {# 🗺️ SEM AMENITY → TENTA ZONA #}
+      {% else %}
+        {% set zona = namespace(
+          nome='Outro',
+          entity=''
+        ) %}
+        {% for z in states.zone %}
+          {% set dist = distance(
+              tracker.attributes.latitude,
+              tracker.attributes.longitude,
+              z.attributes.latitude,
+              z.attributes.longitude
+          ) * 1000 %}
+          {% if dist <= z.attributes.radius %}
+            {% set zona.nome = z.name %}
+            {% set zona.entity = z.entity_id %}
+          {% endif %}
+        {% endfor %}
+        {% if zona.nome != 'Outro' %}
+          {{ zona.nome }}
+
+        {# 🔄 FALLBACK TEXTO #}
+        {% elif 'hospital' in raw %}Hospital
+        {% elif 'restaurante' in raw %}Restaurante
+        {% elif 'supermercado' in raw %}Supermercado
+        {% else %}Outro
+        {% endif %}
+      {% endif %}
+
+    attributes:
+      zone_entity: >
+        {% set tracker = states.device_tracker.creta_location %}
+        {% set zona = namespace(entity='') %}
+        {% for z in states.zone %}
+          {% set dist = distance(
+              tracker.attributes.latitude,
+              tracker.attributes.longitude,
+              z.attributes.latitude,
+              z.attributes.longitude
+          ) * 1000 %}
+          {% if dist <= z.attributes.radius %}
+            {% set zona.entity = z.entity_id %}
+          {% endif %}
+        {% endfor %}
+        {{ zona.entity }}
+
+      icon: >
+        {% set s = states('sensor.creta_local_inteligente') %}
+        {% set zone_entity = state_attr('sensor.creta_local_inteligente', 'zone_entity') %}
+
+        {% if s == 'Em casa' %}mdi:home
+        {% elif s == 'Em trânsito' %}mdi:car
+        {% elif zone_entity %}
+          {{ state_attr(zone_entity, 'icon') }}
+        {% elif s == 'Hospital' %}mdi:hospital
+        {% elif s == 'Restaurante' %}mdi:food
+        {% elif s == 'Posto' %}mdi:gas-station
+        {% elif s == 'Farmácia' %}mdi:pharmacy
+        {% elif s == 'Escola' %}mdi:school
+        {% elif s == 'Banco' %}mdi:bank
+        {% elif s == 'Supermercado' %}mdi:cart
+        {% else %}mdi:map-marker-alert
+        {% endif %}
+
+      color: >
+        {% set s = states('sensor.creta_local_inteligente') %}
+        {% set zone_entity = state_attr('sensor.creta_local_inteligente', 'zone_entity') %}
+
+        {% if s == 'Em casa' %}var(--success-color)
+        {% elif s == 'Em trânsito' %}var(--warning-color)
+        {% elif zone_entity %}var(--info-color)
+        {% else %}var(--error-color)
+        {% endif %}
+
+      latitude: >
+        {{ state_attr('device_tracker.creta_location', 'latitude') }}
+
+      longitude: >
+        {{ state_attr('device_tracker.creta_location', 'longitude') }}
+
+# ------------------------------------------------------------
+#  Alertas
+# ------------------------------------------------------------
+- binary_sensor:
+    - name: "Creta Alertas"
+      unique_id: creta_alertas
+      icon: >
+          {% if is_state('binary_sensor.creta_brake_fluid_warning','on') %}mdi:car-brake-alert
+          {% elif is_state('binary_sensor.creta_tire_pressure_all','on') %}mdi:car-tire-alert
+          {% elif is_state('binary_sensor.creta_fuel_low_level','on') %}mdi:fuel-alert
+          {% elif is_state('binary_sensor.creta_washer_fluid_warning','on') %}mdi:wiper-wash-alert
+          {% elif is_state('binary_sensor.creta_smart_key_battery_warning','on') %}mdi:key-alert
+          {% else %}mdi:car
+          {% endif %}
+      state: >
+        {{
+          is_state('binary_sensor.creta_brake_fluid_warning','on')
+          or is_state('binary_sensor.creta_fuel_low_level','on')
+          or is_state('binary_sensor.creta_smart_key_battery_warning','on')
+          or is_state('binary_sensor.creta_tire_pressure_all','on')
+          or is_state('binary_sensor.creta_washer_fluid_warning','on')
+        }}
+
+      attributes:
+
+        color: >
+          {% if is_state('binary_sensor.creta_alertas','on') %}var(--error-color)
+          {% else %}var(--state-icon-color)
+          {% endif %}
+
+        icon: >
+          {% if is_state('binary_sensor.creta_brake_fluid_warning','on') %}mdi:car-brake-alert
+          {% elif is_state('binary_sensor.creta_tire_pressure_all','on') %}mdi:car-tire-alert
+          {% elif is_state('binary_sensor.creta_fuel_low_level','on') %}mdi:fuel-alert
+          {% elif is_state('binary_sensor.creta_washer_fluid_warning','on') %}mdi:wiper-wash-alert
+          {% elif is_state('binary_sensor.creta_smart_key_battery_warning','on') %}mdi:key-alert
+          {% else %}mdi:car
+          {% endif %}
+
+        quantidade: >
+          {% set total = namespace(v=0) %}
+          {% for e in [
+            'binary_sensor.creta_brake_fluid_warning',
+            'binary_sensor.creta_fuel_low_level',
+            'binary_sensor.creta_smart_key_battery_warning',
+            'binary_sensor.creta_tire_pressure_all',
+            'binary_sensor.creta_washer_fluid_warning',
+          ] %}
+
+            {% if is_state(e,'on') %}
+              {% set total.v = total.v + 1 %}
+            {% endif %}
+          {% endfor %}
+          {{ total.v }}
+          
+        alertas: >
+          {% set lista=[] %}
+
+          {% if is_state('binary_sensor.creta_brake_fluid_warning','on') %}
+            {% set lista=lista+['Fluido de freio'] %}
+          {% endif %}
+
+          {% if is_state('binary_sensor.creta_fuel_low_level','on') %}
+            {% set lista=lista+['Combustível baixo'] %}
+          {% endif %}
+
+          {% if is_state('binary_sensor.creta_smart_key_battery_warning','on') %}
+            {% set lista=lista+['Bateria da chave'] %}
+          {% endif %}
+
+          {% if is_state('binary_sensor.creta_tire_pressure_all','on') %}
+            {% set lista=lista+['Pressão pneus'] %}
+          {% endif %}
+
+          {% if is_state('binary_sensor.creta_washer_fluid_warning','on') %}
+            {% set lista=lista+['Limpador'] %}
+          {% endif %}
+
+          {{ lista|join(', ') if lista else 'Nenhum' }}
+
+# ------------------------------------------------------------
+#  Custo Viagem
+# ------------------------------------------------------------
+- sensor:
+    - name: Creta Last Trip Cost
+      unique_id: creta_last_trip_cost
+      unit_of_measurement: "R$"
+      state: >
+        {% set km = states('input_number.distancia_viagem_creta') | float(0) %}
+        {% set consumption = states('input_number.consumo_medio_creta') | float(11) %}
+        {% set fuel_real_cost = states('sensor.gasolina_media_araras_anp') | float(0) %}
+        {% set fuel = states('input_number.preco_combustivel') | float(6.29) %}
+        
+        {% set preco = fuel_real_cost if fuel_real_cost > 0 else fuel %}
+        
+        {{ ((km / consumption) * preco) | round(2) }}

@@ -1,0 +1,10 @@
+# ------------------------------------------------------------
+#  CUSTOMIZE
+#  Ajustes finos de entidades: nomes amigáveis, ícones, fotos, etc.
+#  Use aqui para não “poluir” os arquivos de integrações/sensores.
+# ------------------------------------------------------------
+
+# Rastreador de localização do Hyundai Creta (telemetria)
+device_tracker.creta_location:
+  friendly_name: Hyundai Creta
+  icon: mdi:car

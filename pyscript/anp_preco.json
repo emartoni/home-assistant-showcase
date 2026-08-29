@@ -1,0 +1,10 @@
+{
+  "preco_medio": 6.451,
+  "preco_minimo": 5.67,
+  "preco_maximo": 7.47,
+  "amostras": 500,
+  "cidade": "ARARAS",
+  "estado": "SP",
+  "atualizado_em": "24/08/2026 06:00",
+  "arquivo": "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc/dsas/ca/ca-2026-01.zip"
+}

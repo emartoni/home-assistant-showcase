@@ -1,0 +1,115 @@
+- name: Creta Timeline
+  unique_id: creta_timeline
+
+  query: >
+    WITH timeline AS (
+
+      SELECT
+        state,
+        last_updated_ts,
+
+        LAG(state)
+        OVER (
+          ORDER BY last_updated_ts
+        ) AS previous_state,
+
+        LAG(last_updated_ts)
+        OVER (
+          ORDER BY last_updated_ts
+        ) AS previous_ts
+
+      FROM states
+
+      WHERE metadata_id=(
+
+        SELECT metadata_id
+        FROM states_meta
+        WHERE entity_id=
+        'sensor.creta_local_inteligente'
+
+      )
+
+      AND state NOT IN (
+        'unknown',
+        'unavailable'
+      )
+
+    )
+
+    SELECT
+      GROUP_CONCAT(item,'||')
+      AS timeline
+
+    FROM (
+
+      SELECT
+
+        CASE
+
+          WHEN date(
+            last_updated_ts,
+            'unixepoch',
+            'localtime'
+          )=
+          date(
+            'now',
+            'localtime'
+          )
+
+          THEN
+
+          strftime(
+            '%H:%M',
+            last_updated_ts,
+            'unixepoch',
+            'localtime'
+          )
+          || ' Hoje'
+
+          ELSE
+
+          strftime(
+            '%d/%m %H:%M',
+            last_updated_ts,
+            'unixepoch',
+            'localtime'
+          )
+
+        END
+
+        || '|'
+        || LOWER(state)
+
+        AS item,
+
+        last_updated_ts
+
+      FROM timeline
+
+      WHERE
+
+      (
+        previous_state IS NULL
+        OR state != previous_state
+      )
+
+      AND
+
+      (
+        previous_ts IS NULL
+        OR
+        (
+          last_updated_ts
+          -
+          previous_ts
+        ) > 120
+      )
+
+      ORDER BY
+      last_updated_ts DESC
+
+      LIMIT 5
+
+    )
+
+  column: timeline

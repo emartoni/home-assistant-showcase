@@ -1,0 +1,185 @@
+# =========================
+# SENSORES "SAFE" - PREÇO KWH E BANDEIRA
+# =========================
+- trigger:
+    - platform: homeassistant
+      event: start
+    - platform: state
+      entity_id: sensor.preco_kwh_raw
+    - platform: time
+      at: "00:05:00"
+  sensor:
+    - name: "Preço kWh"
+      unique_id: preco_kwh
+      unit_of_measurement: "R$/kWh"
+      icon: mdi:currency-brl
+      state: >
+        {% set v = states('sensor.preco_kwh_raw') %}
+        {% if v not in ['unknown', 'unavailable', ''] %}
+          {{ v | float(0) }}
+        {% else %}
+          {{ this.state }}
+        {% endif %}
+
+- trigger:
+    - platform: homeassistant
+      event: start
+    - platform: state
+      entity_id: sensor.bandeira_tarifaria_raw
+    - platform: time
+      at: "00:05:00"
+  sensor:
+    - name: "Bandeira Tarifária"
+      unique_id: bandeira_tarifaria
+      unit_of_measurement: "R$/kWh"
+      icon: mdi:flag-variant-plus
+      state: >
+        {% set v = states('sensor.bandeira_tarifaria_raw') %}
+        {% if v not in ['unknown', 'unavailable', ''] %}
+          {{ v | float(0) }}
+        {% else %}
+          {{ this.state }}
+        {% endif %}
+      attributes:
+        bandeira: >
+          {% set v = state_attr('sensor.bandeira_tarifaria_raw', 'NomBandeiraAcionada') %}
+          {% if v not in [None, '', 'unknown', 'unavailable'] %}
+            {{ v }}
+          {% else %}
+            {{ this.attributes.bandeira | default('Desconhecida') }}
+          {% endif %}
+        datacompetencia: >
+          {% set v = state_attr('sensor.bandeira_tarifaria_raw', 'DatCompetencia') %}
+          {% if v not in [None, '', 'unknown', 'unavailable'] %}
+            {{ v }}
+          {% else %}
+            {{ this.attributes.datacompetencia | default('') }}
+          {% endif %}
+
+# =========================
+# TARIFA FINAL (R$/kWh) COM BANDEIRA + TRIBUTOS (GROSS-UP)
+# =========================
+- sensor:
+    - name: "Tarifa de Energia"
+      unique_id: tarifa_energia
+      icon: mdi:currency-brl
+      unit_of_measurement: "R$/kWh"
+      state: >
+        {% set preco_kwh = states('sensor.preco_kwh') | float(0) %}
+        {% set bandeira = states('sensor.bandeira_tarifaria') | float(0) %}
+
+        {% set icms = (states('input_number.icms_sao_paulo') | float(0)) / 100 %}
+        {% set pis = (states('input_number.pis_sao_paulo') | float(0)) / 100 %}
+        {% set cofins = (states('input_number.cofins_sao_paulo') | float(0)) / 100 %}
+
+        {% set base = preco_kwh + bandeira %}
+        {% set tributos = icms + pis + cofins %}
+        {% set denominador = 1 - tributos %}
+
+        {% if denominador <= 0 %}
+          {{ base | round(5) }}
+        {% else %}
+          {{ (base / denominador) | round(5) }}
+        {% endif %}
+
+# =========================
+# GASTO MENSAL (R$) COM COMPENSAÇÃO + CONSUMO MÍNIMO
+# =========================
+- sensor:
+    - name: "Gasto Mensal de Energia"
+      unique_id: gasto_mensal_energia
+      icon: mdi:cash
+      unit_of_measurement: "R$"
+      device_class: monetary
+      state_class: total
+      state: >
+        {% set import_kwh = states('sensor.monthly_import') | float(0) %}
+        {% set export_kwh = states('sensor.monthly_export') | float(0) %}
+        {% set min_kwh = states('input_number.consumo_minimo_energia') | float(0) %}
+
+        {% set compensada = [import_kwh, export_kwh] | min %}
+        {% set liquida = import_kwh - compensada %}
+        {% set faturavel = [liquida, min_kwh] | max %}
+
+        {% set tarifa_final = states('sensor.tarifa_de_energia') | float(0) %}
+        {{ (faturavel * tarifa_final) | round(2) }}
+
+# =========================
+# CUSTO IMPORTADO - DIA / NOITE (R$)
+# =========================
+- sensor:
+    - name: "Custo Importado - Dia"
+      unique_id: custo_importado_dia
+      icon: mdi:currency-brl
+      unit_of_measurement: "R$"
+      device_class: monetary
+      state: >
+        {% set rede_dia = states('sensor.consumo_rede_diario') | float(0) %}
+        {% set solar    = states('sensor.consumo_solar_diario') | float(0) %}
+        {% set tarifa   = states('sensor.tarifa_de_energia') | float(0) %}
+        {% set importado_dia = [rede_dia - solar, 0] | max %}
+        {{ (importado_dia * tarifa) | round(2) }}
+
+    - name: "Custo Importado - Noite"
+      unique_id: custo_importado_noite
+      icon: mdi:currency-brl
+      unit_of_measurement: "R$"
+      device_class: monetary
+      state: >
+        {% set rede_dia = states('sensor.consumo_rede_diario') | float(0) %}
+        {% set solar    = states('sensor.consumo_solar_diario') | float(0) %}
+        {% set tarifa   = states('sensor.tarifa_de_energia') | float(0) %}
+        {% set importado_noite = [solar - rede_dia, 0] | max %}
+        {{ (importado_noite * tarifa) | round(2) }}
+
+# =========================
+# GASTO NOS ÚLTIMOS 6 MESES
+# =========================
+- sensor:
+    - name: "Energia - Gasto Mensal"
+      unique_id: energia_gasto_mensal_ultimos_6
+      unit_of_measurement: "R$"
+      device_class: monetary
+      icon: mdi:cash
+      state: "{{ states('input_number.energia_custo_mes_atual') | float(0) }}"
+      attributes:
+        mes_1_valor: "{{ states('input_number.energia_custo_mes_1') | float(0) }}"
+        mes_2_valor: "{{ states('input_number.energia_custo_mes_2') | float(0) }}"
+        mes_3_valor: "{{ states('input_number.energia_custo_mes_3') | float(0) }}"
+        mes_4_valor: "{{ states('input_number.energia_custo_mes_4') | float(0) }}"
+        mes_5_valor: "{{ states('input_number.energia_custo_mes_5') | float(0) }}"
+
+# =========================
+# ECONOMIAS
+# =========================
+- sensor:
+    - name: "Economia diária por geração solar"
+      unique_id: economia_diaria_geracao_solar
+      icon: mdi:cash
+      unit_of_measurement: "R$"
+      device_class: monetary
+      state_class: total
+      state: >
+        {% set valor_kwh = states('sensor.tarifa_de_energia')|float(0) %}
+        {% set balanco = states('sensor.balanco_diario_de_energia')|float(0) %}
+        {% if balanco < 0 %}
+            {{ (balanco * -1 * valor_kwh) | round(2) }}
+        {% else %}
+            0
+        {% endif %}
+        
+- sensor:
+    - name: "Retorno do investimento solar"
+      unique_id: retorno_investimento_solar
+      unit_of_measurement: "%"
+      icon: mdi:cash-multiple
+      state: >
+        {% set investimento = states('input_number.investimento_solar') | float(0) %}
+        {% set economia = states('sensor.economia_solar_acumulada') | float(0) %}
+        {% set estimada = states('input_number.economia_mensal_estimada_solar')|float(0) %}
+        {% if investimento <= 0 %}
+            0
+        {% else %}
+            {% set valor_usado = economia if economia >= estimada else estimada %}
+            {{ (valor_usado / investimento * 100) | round(1) }}
+        {% endif %}

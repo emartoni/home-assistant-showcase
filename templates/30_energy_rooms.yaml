@@ -1,0 +1,332 @@
+# ============================================================
+#  ENERGIA E POTÊNCIA (Template Sensors)
+#  - Balanços (kWh)
+#  - Potências (kW)
+#  - Percentuais
+#  - Consumos por ambiente (kWh diário)
+# ============================================================
+- sensor:
+    # ------------------------------------------------------------
+    # CONSUMOS DIÁRIOS POR AMBIENTE (kWh)
+    # ------------------------------------------------------------
+    - name: "Consumo Diário Cozinha"
+      unique_id: consumo_diario_cozinha
+      unit_of_measurement: "kWh"
+      device_class: energy
+      state_class: total
+      icon: mdi:lightning-bolt
+      availability: >-
+        {% set entidades = [
+          'sensor.cozinha_central_light_energy',
+          'sensor.cozinha_led_light_energy',
+          'sensor.pendente_jantar_energy',
+          'sensor.cozinha_corredor_light_energy',
+          'sensor.garagem_light_energy'
+        ] %}
+        {% set ns = namespace(validas=0) %}
+      
+        {% for entidade in entidades %}
+          {% set valor = states(entidade) %}
+          {% if valor not in ['unknown', 'unavailable', 'none', ''] and valor | float(none) is not none %}
+            {% set ns.validas = ns.validas + 1 %}
+          {% endif %}
+        {% endfor %}
+      
+        {{ ns.validas == entidades | length }}
+      state: >-
+        {% set entidades = [
+          'sensor.cozinha_central_light_energy',
+          'sensor.cozinha_led_light_energy',
+          'sensor.pendente_jantar_energy',
+          'sensor.cozinha_corredor_light_energy',
+          'sensor.garagem_light_energy'
+        ] %}
+        {% set ns = namespace(total=0) %}
+      
+        {% for entidade in entidades %}
+          {% set ns.total = ns.total + states(entidade) | float(0) %}
+        {% endfor %}
+      
+        {{ ns.total | round(3) }}
+
+    - name: "Consumo Diário Suite"
+      unique_id: consumo_diario_suite
+      unit_of_measurement: "kWh"
+      device_class: energy
+      state_class: total
+      icon: mdi:lightning-bolt
+      availability: >-
+        {% set entidades = [
+          'sensor.luz_quarto_laptop_energy_daily',
+          'sensor.luz_quarto_ventilador_1_energy_daily',
+          'sensor.luz_quarto_ventilador_2_energy_daily',
+          'sensor.tomada_cpap_energy_daily',
+          'sensor.tomada_ps5_energy_daily'
+        ] %}
+        {% set ns = namespace(validas=0) %}
+      
+        {% for entidade in entidades %}
+          {% set valor = states(entidade) %}
+          {% if valor not in ['unknown', 'unavailable', 'none', ''] and valor | float(none) is not none %}
+            {% set ns.validas = ns.validas + 1 %}
+          {% endif %}
+        {% endfor %}
+      
+        {{ ns.validas == entidades | length }}
+      state: >-
+        {% set entidades = [
+          'sensor.luz_quarto_laptop_energy_daily',
+          'sensor.luz_quarto_ventilador_1_energy_daily',
+          'sensor.luz_quarto_ventilador_2_energy_daily',
+          'sensor.tomada_cpap_energy_daily',
+          'sensor.tomada_ps5_energy_daily'
+        ] %}
+        {% set ns = namespace(total=0) %}
+      
+        {% for entidade in entidades %}
+          {% set ns.total = ns.total + states(entidade) | float(0) %}
+        {% endfor %}
+      
+        {{ ns.total | round(3) }}
+
+    - name: "Consumo Diário Sala de Jantar"
+      unique_id: consumo_diario_sala_de_jantar
+      unit_of_measurement: "kWh"
+      device_class: energy
+      state_class: total
+      icon: mdi:lightning-bolt
+      availability: >-
+        {% set entidades = [
+          'sensor.jantar_aparador_light_energy_daily',
+          'sensor.jantar_balizador_fundo_light_energy_daily',
+          'sensor.jantar_balizardor_corredor_light_energy_daily',
+          'sensor.jantar_central_light_energy_daily',
+          'sensor.pendente_jantar_energy_daily',
+          'sensor.jantar_jardim_light_energy_daily'
+        ] %}
+        {% set ns = namespace(validas=0) %}
+      
+        {% for entidade in entidades %}
+          {% set valor = states(entidade) %}
+          {% if valor not in ['unknown', 'unavailable', 'none', ''] and valor | float(none) is not none %}
+            {% set ns.validas = ns.validas + 1 %}
+          {% endif %}
+        {% endfor %}
+      
+        {{ ns.validas == entidades | length }}
+      state: >-
+        {% set entidades = [
+          'sensor.jantar_aparador_light_energy_daily',
+          'sensor.jantar_balizador_fundo_light_energy_daily',
+          'sensor.jantar_balizardor_corredor_light_energy_daily',
+          'sensor.jantar_central_light_energy_daily',
+          'sensor.pendente_jantar_energy_daily',
+          'sensor.jantar_jardim_light_energy_daily'
+        ] %}
+        {% set ns = namespace(total=0) %}
+      
+        {% for entidade in entidades %}
+          {% set ns.total = ns.total + states(entidade) | float(0) %}
+        {% endfor %}
+      
+        {{ ns.total | round(3) }}
+
+    - name: "Consumo Diário Garagem"
+      unique_id: consumo_diario_garagem
+      unit_of_measurement: "kWh"
+      device_class: energy
+      state_class: total
+      icon: mdi:lightning-bolt
+      availability: >-
+        {% set entidades = [
+          'sensor.rele_camera_garagem_garagem_energy_daily',
+          'sensor.frente_direita_mainstream_energy_daily',
+          'sensor.frente_esquerda_mainstream_energy_daily',
+          'sensor.sala_tv_numero_light_energy_daily'
+        ] %}
+        {% set ns = namespace(validas=0) %}
+      
+        {% for entidade in entidades %}
+          {% set valor = states(entidade) %}
+          {% if valor not in ['unknown', 'unavailable', 'none', ''] and valor | float(none) is not none %}
+            {% set ns.validas = ns.validas + 1 %}
+          {% endif %}
+        {% endfor %}
+      
+        {{ ns.validas == entidades | length }}
+      state: >-
+        {% set entidades = [
+          'sensor.rele_camera_garagem_garagem_energy_daily',
+          'sensor.frente_direita_mainstream_energy_daily',
+          'sensor.frente_esquerda_mainstream_energy_daily',
+          'sensor.sala_tv_numero_light_energy_daily'
+        ] %}
+        {% set ns = namespace(total=0) %}
+      
+        {% for entidade in entidades %}
+          {% set ns.total = ns.total + states(entidade) | float(0) %}
+        {% endfor %}
+      
+        {{ ns.total | round(3) }}
+
+    - name: "Consumo Diário Sala de TV"
+      unique_id: consumo_diario_sala_de_tv
+      unit_of_measurement: "kWh"
+      device_class: energy
+      state_class: total
+      icon: mdi:lightning-bolt
+      availability: >-
+        {% set entidades = [
+          'sensor.sala_tv_central_light_energy_daily',
+          'sensor.sala_tv_spot_frente_light_energy_daily',
+          'sensor.sala_tv_spot_fundo_light_energy_daily',
+          'sensor.sala_tv_spot_lateral_light_energy_daily',
+          'sensor.rele_camera_garagem_garagem_energy_daily',
+          'sensor.sala_tv_numero_light_energy_daily'
+        ] %}
+        {% set ns = namespace(validas=0) %}
+      
+        {% for entidade in entidades %}
+          {% set valor = states(entidade) %}
+          {% if valor not in ['unknown', 'unavailable', 'none', ''] and valor | float(none) is not none %}
+            {% set ns.validas = ns.validas + 1 %}
+          {% endif %}
+        {% endfor %}
+      
+        {{ ns.validas == entidades | length }}
+      state: >-
+        {% set entidades = [
+          'sensor.sala_tv_central_light_energy_daily',
+          'sensor.sala_tv_spot_frente_light_energy_daily',
+          'sensor.sala_tv_spot_fundo_light_energy_daily',
+          'sensor.sala_tv_spot_lateral_light_energy_daily',
+          'sensor.rele_camera_garagem_garagem_energy_daily',
+          'sensor.sala_tv_numero_light_energy_daily'
+        ] %}
+        {% set ns = namespace(total=0) %}
+      
+        {% for entidade in entidades %}
+          {% set ns.total = ns.total + states(entidade) | float(0) %}
+        {% endfor %}
+      
+        {{ ns.total | round(3) }}
+        
+    # ------------------------------------------------------------
+    # DASHBOARD DE ENERGIA
+    # ------------------------------------------------------------
+    - name: "Energia Autoconsumida Hoje"
+      unique_id: energia_autoconsumida_hoje_pct
+      icon: mdi:solar-power
+      unit_of_measurement: "%"
+      state_class: measurement
+      state: >
+        {% set production = states('sensor.inversor_solis_geracao_solar_diaria') | float(0) %}
+        {% set exported   = states('sensor.daily_export') | float(0) %}
+
+        {% if production <= 0 %}
+          0
+        {% else %}
+          {% set pct = ((production - exported) / production * 100) %}
+          {{ [ [pct, 0] | max, 100 ] | min | round(0) }}
+        {% endif %}
+        
+    - name: "Auto Suficiência Energética Hoje"
+      unique_id: auto_suficiencia_hoje_pct
+      icon: mdi:home-lightning-bolt
+      unit_of_measurement: "%"
+      state_class: measurement
+      state: >
+        {% set production = states('sensor.inversor_solis_geracao_solar_diaria') | float(0) %}
+        {% set exported   = states('sensor.daily_export') | float(0) %}
+        {% set imported   = states('sensor.daily_import') | float(0) %}
+
+        {% set self_used = production - exported %}
+        {% set total_consumption = self_used + imported %}
+
+        {% if total_consumption <= 0 %}
+          0
+        {% else %}
+          {% set pct = (self_used / total_consumption * 100) %}
+          {{ [ [pct, 0] | max, 100 ] | min | round(0) }}
+        {% endif %}
+        
+    - name: >
+          {% set exported = states('sensor.daily_export') | float(0) %}
+          {% set imported = states('sensor.daily_import') | float(0) %}
+          {% set net = exported - imported %}
+          {% if net > 0 %}
+            Energia retornada à rede
+          {% else %}
+            Energia consumida da rede
+          {% endif %}
+      unique_id: energia_voltada_rede_gauge
+      icon: mdi:transmission-tower
+      state_class: measurement
+      state: >
+        {% set exported = states('sensor.daily_export') | replace(',', '.') | float(0) %}
+        {% set imported = states('sensor.daily_import') | replace(',', '.') | float(0) %}
+        {% set total = exported + imported %}
+        {% set net = exported - imported %}
+
+        {% if total > 0 %}
+          {{ (net / total) | round(3) }}
+        {% else %}
+          0
+        {% endif %}
+
+      attributes:
+
+        # Valor absoluto exibido no gauge
+        value: >
+          {% set exported = states('sensor.daily_export') | float(0) %}
+          {% set imported = states('sensor.daily_import') | float(0) %}
+          {{ (exported - imported) | abs | round(2) }}
+          
+        # Label dinâmica do gauge
+        label: >
+          {% set exported = states('sensor.daily_export') | float(0) %}
+          {% set imported = states('sensor.daily_import') | float(0) %}
+          {% set net = exported - imported %}
+          {% if net > 0 %}
+            Energia retornada à rede
+          {% else %}
+            Energia consumida da rede
+          {% endif %}
+
+    - name: "Consumo Low Carbon Hoje"
+      unique_id: consumo_low_carbon_hoje_pct
+      icon: mdi:leaf
+      unit_of_measurement: "%"
+      state_class: measurement
+      state: >
+        {% set production = states('sensor.inversor_solis_geracao_solar_diaria') | replace(',', '.') | float(0) %}
+        {% set exported   = states('sensor.daily_export') | replace(',', '.') | float(0) %}
+        {% set imported   = states('sensor.daily_import') | replace(',', '.') | float(0) %}
+        {% set fossil_pct = states('sensor.electricity_maps_grid_fossil_fuel_percentage') | replace(',', '.') | float(0) %}
+
+        {% set self_used = [production - exported, 0] | max %}
+        {% set total_consumption = self_used + imported %}
+
+        {% set grid_low_carbon_pct = [100 - fossil_pct, 0] | max %}
+        {% set grid_low_carbon = imported * (grid_low_carbon_pct / 100) %}
+        {% set solar_low_carbon = self_used %}
+
+        {% if total_consumption > 0 %}
+          {% set pct = ((solar_low_carbon + grid_low_carbon) / total_consumption * 100) %}
+          {{ [ [pct, 0] | max, 100 ] | min | round(0) }}
+        {% else %}
+          0
+        {% endif %}
+        
+    - name: "Percentual Conta Compensada"
+      unit_of_measurement: "%"
+      icon: mdi:solar-power
+      state: >
+        {% set imported = states('sensor.monthly_import') | float(0) %}
+        {% set exported = states('sensor.monthly_export') | float(0) %}
+        {% set total = imported + exported %}
+        {% if total == 0 %}
+          0
+        {% else %}
+          {{ (exported / total * 100) | round(1) }}
+        {% endif %}

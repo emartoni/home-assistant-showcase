@@ -1,0 +1,111 @@
+# ============================================================
+# HOME ASSISTANT - configuration.yaml
+#
+# Arquivo principal de configuração do Home Assistant.
+#
+# A maior parte das integrações é configurada pela interface
+# gráfica. Este arquivo contém apenas as configurações que ainda
+# precisam ser declaradas manualmente ou que foram organizadas
+# em arquivos externos para facilitar a manutenção.
+# ============================================================
+
+
+# ============================================================
+# CONFIGURAÇÃO PRINCIPAL
+# ============================================================
+
+# Carrega as integrações padrão do Home Assistant, incluindo
+# histórico, logbook, mapa, mobile_app, sun, entre outras.
+default_config:
+
+
+# ============================================================
+# FRONTEND
+# ============================================================
+
+frontend:
+  # Carrega todos os temas localizados em /config/themes/.
+  themes: !include_dir_merge_named themes
+
+  # Módulos JavaScript adicionais carregados pelo frontend.
+  extra_module_url:
+    # Kiosk Mode — oculta header e sidebar em dashboards
+    # configurados para funcionar em modo quiosque.
+    - /hacsfiles/kiosk-mode/kiosk-mode.js
+
+
+# ============================================================
+# INCLUDES DE CONFIGURAÇÃO
+#
+# Os domínios abaixo são mantidos em arquivos separados para
+# dividir a configuração em partes menores e facilitar futuras
+# alterações.
+#
+# Arquivos individuais:
+#   automations.yaml   - automações gerenciadas pela UI
+#   scripts.yaml       - scripts gerenciados pela UI
+#   scenes.yaml        - cenas gerenciadas pela UI
+#   sensors.yaml       - sensores estatísticos e legados
+#   rest_sensors.yaml  - sensores REST
+#   climate.yaml       - entidades de clima
+#   switch.yaml        - switches manuais ou virtuais
+#   input_number.yaml  - helpers numéricos definidos em YAML
+#   command_line.yaml  - sensores baseados em comandos
+#   customize.yaml     - personalizações globais
+#   recorder.yaml      - inclusões e exclusões do Recorder
+#
+# Pastas:
+#   sql/               - sensores SQL
+#   scrape/            - sensores Scrape
+#   templates/         - entidades Template modernas
+#
+# Os arquivos das pastas são mesclados em uma única lista.
+# ============================================================
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+sensor: !include sensors.yaml
+rest: !include rest_sensors.yaml
+climate: !include climate.yaml
+switch: !include switch.yaml
+input_number: !include input_number.yaml
+command_line: !include command_line.yaml
+
+sql: !include_dir_merge_list sql
+scrape: !include_dir_merge_list scrape
+
+recorder: !include recorder.yaml
+
+# ============================================================
+# PERSONALIZAÇÕES GLOBAIS
+# ============================================================
+
+homeassistant:
+  # Personalizações de entidades, como nomes amigáveis,
+  # ícones e demais atributos definidos manualmente.
+  customize: !include customize.yaml
+
+# ============================================================
+# ENTIDADES TEMPLATE
+# ============================================================
+
+# Carrega as entidades Template modernas existentes na pasta
+# /config/templates/.
+#
+# Cada arquivo da pasta pode conter sensores, binary_sensors
+# ou outros tipos compatíveis com a integração Template.
+template: !include_dir_merge_list templates/
+
+
+# ============================================================
+# ASSISTENTES DE VOZ
+# ============================================================
+
+# Configuração da integração Alexa Smart Home.
+#
+# A exposição das entidades é gerenciada pela interface do
+# Home Assistant em Configurações > Alexa.
+alexa:
+  smart_home:

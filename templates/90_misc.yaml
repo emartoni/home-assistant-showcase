@@ -1,0 +1,317 @@
+# ============================================================
+#  HOME ASSISTANT - Diversos
+# ============================================================
+
+# ------------------------------------------------------------
+#  WELCOME CARD (Trigger-based Template Sensor)
+#  - Atualiza a cada 5 min e quando entidades de clima mudam
+#  - Expõe textos prontos para um card (attributes)
+# ------------------------------------------------------------
+- trigger:
+    - platform: time_pattern
+      minutes: "/5"
+    - platform: state
+      entity_id:
+        - weather.google_weather
+        - sensor.custom_weather
+        - sensor.balanco_diario_de_energia
+        - sensor.tarifa_de_energia
+        - sensor.bandeira_tarifaria
+        - input_number.temperatura_maxima_hoje
+        - input_number.temperatura_maxima_ontem
+        - sensor.estado_da_internet
+        - sensor.qualidade_da_internet
+        - sensor.total_cameras_off_template
+  sensor:
+    - name: "Custom Welcome Card"
+      unique_id: custom_welcome_card
+      icon: mdi:smart-card
+
+      # Estado útil para debug (Developer Tools / histórico)
+      state: >
+        {% set h = now().hour %}
+        {% if h >= 18 %}boa_noite
+        {% elif h >= 12 %}boa_tarde
+        {% else %}bom_dia
+        {% endif %}
+
+      variables:
+        # ----------------------------
+        # Tempo / contexto
+        # ----------------------------
+        hora: "{{ now().hour }}"
+        dia_semana: "{{ now().weekday() }}"   # 0=Seg ... 6=Dom
+        noite: "{{ now().hour >= 18 }}"
+
+        # ----------------------------
+        # Clima (com normalização)
+        # ----------------------------
+        humidade: "{{ state_attr('sensor.custom_weather', 'humidity') | int(0) }}"
+        chuva_mm: "{{ state_attr('sensor.custom_weather', 'precipitation') | float(0) }}"
+        tempo_raw: "{{ state_attr('sensor.custom_weather', 'desc') | default('', true) }}"
+        tempo: "{{ (tempo_raw | string | lower | trim) }}"
+
+        # ----------------------------
+        # Energia
+        # ----------------------------
+        balanco_kwh: "{{ states('sensor.balanco_diario_de_energia') | float(0) }}"
+        tarifa: "{{ states('sensor.tarifa_de_energia') | float(0) }}"
+
+        # Se o balanço for NEGATIVO, assumimos “economia/geração”
+        economia_kwh: "{{ max(-1 * balanco_kwh, 0) }}"
+        economia_rs: "{{ max(-1 * balanco_kwh, 0) * tarifa }}"
+
+        # ----------------------------
+        # Temperatura (inputs)
+        # ----------------------------
+        temp_hoje: "{{ states('input_number.temperatura_maxima_hoje') | float(0) }}"
+        temp_ontem: "{{ states('input_number.temperatura_maxima_ontem') | float(0) }}"
+        
+        #----------------------------
+        cameras_offline: "{{ states('sensor.total_cameras_off_template') | int(0) }}"
+
+      attributes:
+        # ----------------------------
+        # Saudação
+        # ----------------------------
+        welcome: >
+          {% set nome = state_attr('person.eduardo_martoni','friendly_name').split(' ')[0] %}
+
+          {% if noite %}Boa noite, {{ nome }}! 🌙
+          {% elif hora >= 12 %}Boa tarde, {{ nome }}! ☕
+          {% else %}Bom dia, {{ nome }}! ☀️
+          {% endif %}
+
+        time: >
+          {% if noite %}com uma noite
+          {% else %}com um dia
+          {% endif %}
+
+        # ----------------------------
+        # Humidade / condição do ar
+        # ----------------------------
+        humidity: >
+          {% if humidade <= 20 %}muito seco 🌵
+          {% elif humidade <= 40 %}seco 🍂
+          {% else %}agradável 🌿
+          {% endif %}
+
+        air_condition: >
+          {% if humidade < 12 %}emergência 🆘
+          {% elif humidade <= 20 %}alerta 🚨
+          {% elif humidade <= 30 %}atenção ⚠️
+          {% elif humidade <= 40 %}observação 👀
+          {% else %}adequado 👍
+          {% endif %}
+
+        # ----------------------------
+        # Clima (robusto)
+        # 1) Se chuva > 0 => chuvoso/chuvosa
+        # 2) Se descrição indicar nublado => nublado/nublada
+        # 3) Senão => ensolarado/limpa
+        # ----------------------------
+        weather: >
+          {% if chuva_mm > 0 %}
+            {% if noite %}chuvosa 🌧
+            {% else %}chuvoso 🌧
+            {% endif %}
+          {% elif 'cloud' in tempo or tempo in ['cloudy', 'overcast', 'partly_cloudy', 'partly cloudy', 'scattered clouds', 'broken clouds'] %}
+            {% if noite %}nublada ☁️
+            {% else %}nublado ☁️
+            {% endif %}
+          {% else %}
+            {% if noite %}limpa 🌙
+            {% else %}ensolarado ☀️
+            {% endif %}
+          {% endif %}
+
+        # ----------------------------
+        # Energia
+        # ----------------------------
+        energy_use: >
+            {% if balanco_kwh < 0 %}
+                {{ balanco_kwh * -1 }} kWh ⚡
+            {% else %}
+                {{ balanco_kwh }} kWh ⚡
+            {% endif %}
+
+        energy_source: >
+            {% if balanco_kwh < 0 %}
+                solar ☀️
+            {% else %}
+                da rede 🔌
+            {% endif %}
+
+        saving: >
+          {% if economia_rs <= 0 %}
+            R$ 0,00 💸
+          {% else %}
+            R$ {{ '%0.2f' | format(economia_rs) | replace('.', ',') }} 💵
+          {% endif %}
+
+        # ----------------------------
+        # Internet
+        # ----------------------------
+        internet_quality: >
+            {{ states('sensor.qualidade_da_internet') }}%
+
+        internet_state: >
+            {% set s = states('sensor.estado_da_internet') | string | lower | trim %}
+            {% if s == 'excelente' %}{{ s }} ✅
+            {% elif s == 'boa' %}{{ s }} ☑️
+            {% elif s == 'instável' %}{{ s }} ⚠️
+            {% else %}{{ s }} 🆘
+            {% endif %}
+
+        # ----------------------------
+        # Bandeira tarifária (com fallback)
+        # ----------------------------
+        energy_flag: >
+          {% set b = state_attr('sensor.bandeira_tarifaria', 'bandeira')
+                      | default('', true)
+                      | replace(' P2','')
+                      | lower
+                      | trim %}
+          {% if b in ['', 'unknown', 'unavailable', 'none'] %}indisponível ⚪
+          {% elif b == 'vermelha' %}{{ b }} 🟥
+          {% elif b == 'verde' %}{{ b }} 🟩
+          {% else %}{{ b }} 🟨
+          {% endif %}
+
+        # ----------------------------
+        # Temperatura (diferença ontem vs hoje)
+        # ----------------------------
+        temp_variation: >
+          {% set diff = (temp_ontem - temp_hoje) | round(0) %}
+          {% if diff > 0 %}mais frio ❄️
+          {% elif diff == 0 %}mesma temperatura 🍃
+          {% else %}mais quente 🔥
+          {% endif %}
+          
+        # ----------------------------
+        # Cameras
+        # ----------------------------
+        cameras: >
+            {% set texto = 'câmeras' if cameras_offline > 1 else 'câmera' %}
+            {% if cameras_offline > 0 %}{{cameras_offline}} {{texto}} offline ❌
+            {% else %}todas as câmeras funcionando 📷
+            {% endif %}
+
+        # ----------------------------
+        # Lixo (mantém sua lógica, só deixa mais consistente)
+        # Observação: o texto termina em "o" (provavelmente seu card completa com o tipo)
+        # ----------------------------
+        garbage: >
+          {% if dia_semana in [0, 2, 4] %}
+            Amanhã é dia de colocar o 🗑
+          {% elif dia_semana in [1, 3, 5] %}
+            {% if hora >= 17 %}
+              Atenção ao próximo dia de colocar o 🗑️
+            {% else %}
+              Hoje é dia de colocar o 🗑️
+            {% endif %}
+          {% else %}
+            Hoje não é dia de colocar o 🗑️
+          {% endif %}
+
+# ------------------------------------------------------------
+#  SISTEMA
+# ------------------------------------------------------------
+- sensor:
+    - name: Tamanho Total Disco
+      unique_id: tamanho_total_disco
+      unit_of_measurement: "GiB"
+      state: >
+        {{ (states('sensor.system_monitor_disk_free') | float(0)) +
+         (states('sensor.system_monitor_disk_use') | float(0)) }}
+      icon: mdi:harddisk
+
+- sensor:
+    - name: Disco Livre
+      unique_id: disco_livre
+      unit_of_measurement: "%"
+      state: >
+        {{ 100|float(0) - states('sensor.system_monitor_disk_usage')|float(0) }}
+
+# ------------------------------------------------------------
+#  BACKUP
+# ------------------------------------------------------------
+- trigger:
+    - platform: time_pattern
+      minutes: "/15"
+    - platform: state
+      entity_id: event.backup_automatic_backup
+      attribute: event_type
+    - platform: state
+      entity_id: sensor.backup_last_successful_automatic_backup
+    - platform: state
+      entity_id: sensor.backup_last_attempted_automatic_backup
+    - platform: state
+      entity_id: sensor.backup_next_scheduled_automatic_backup
+    - platform: homeassistant
+      event: start
+  sensor:
+    - name: Estado do Backup
+      unique_id: estado_backup
+      icon: mdi:database-cog-outline
+      state: >-
+        {% set s = state_attr('event.backup_automatic_backup', 'event_type') %}
+        {% if s == 'completed' %}
+          Completado com sucesso
+        {% elif s == 'failed' %}
+          Falha na execução
+        {% else %}
+          Em progresso
+        {% endif %}
+      attributes:
+        color: >-
+          {% set s = state_attr('event.backup_automatic_backup', 'event_type') %}
+          {% if s == 'completed' %}
+            rgb(32, 178, 170)
+          {% elif s == 'failed' %}
+            rgb(255, 0, 0)
+          {% else %}
+            rgb(128, 128, 128)
+          {% endif %}
+        last_success: >-
+          {% from 'tempo_pt.jinja' import tempo_atras, tempo_atras_hora %}
+          {{ tempo_atras_hora('sensor.backup_last_successful_automatic_backup') }}
+        last_success_date: >-
+          {{ states('sensor.backup_last_successful_automatic_backup') }}
+        datetime: >-
+          {% set s = states('sensor.backup_last_attempted_automatic_backup') %}
+          {{ s|as_timestamp|timestamp_custom('%d/%m/%Y %H:%M') }}
+        next: >-
+          {% from 'tempo_pt.jinja' import tempo_atras, tempo_falta_hora %}
+          {{ tempo_falta_hora('sensor.backup_next_scheduled_automatic_backup') }}
+        next_date: >-
+          {{ states('sensor.backup_next_scheduled_automatic_backup') }}
+        type: >-
+          {% set s = states('sensor.backup_next_scheduled_automatic_backup') %}
+          {{ 'Automático' if s not in ['unknown', 'unavailable', 'none', ''] else 'Manual' }}
+        type_icon: >-
+          {% set s = states('sensor.backup_next_scheduled_automatic_backup') %}
+          {{ 'mdi:calendar' if s not in ['unknown', 'unavailable', 'none', ''] else 'mdi:button-pointer' }}
+        progress_percentage: >-
+          {% set last_raw = states('sensor.backup_last_successful_automatic_backup') %}
+          {% set next_raw = states('sensor.backup_next_scheduled_automatic_backup') %}
+          {% set current_sensor_state = states('sensor.estado_do_backup') %}
+
+          {% set last_timestamp = as_timestamp(last_raw) %}
+          {% set next_timestamp = as_timestamp(next_raw) %}
+          {% set now_timestamp = as_timestamp(now()) %}
+
+          {% if last_timestamp is not none and next_timestamp is not none and next_timestamp > last_timestamp %}
+            {% set pct = ((now_timestamp - last_timestamp) / (next_timestamp - last_timestamp)) * 100 %}
+            {{ [0, [100, pct|round(0)]|min]|max }} {# Garante que o valor esteja entre 0 e 100 #}
+          {% else %}
+            {% if current_sensor_state == 'Completado com sucesso' %}
+              100
+            {% elif current_sensor_state == 'Falha na execução' %}
+              0
+            {% elif current_sensor_state == 'Em progresso' %}
+              50
+            {% else %}
+              0
+            {% endif %}
+          {% endif %}

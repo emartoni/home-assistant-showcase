@@ -1,0 +1,34 @@
+
+# ============================================================
+# SENSORES ESTATÍSTICOS
+# ============================================================
+#
+# Este arquivo contém sensores baseados na plataforma statistics.
+#
+# Sensores REST ficam em rest_sensors.yaml.
+# Sensores Command Line ficam em command_line.yaml.
+# Sensores Template modernos ficam em templates/.
+
+# ============================================================
+#  MONITORAMENTO DE INTERNET
+#  - Internet Média 15min retorna a velocidade média dos últimos 15 minutos
+#  - Internet Desvui retorna oscilações
+# ============================================================
+
+# 📊 Média da internet (janela maior)
+- platform: statistics
+  name: "Internet Média 3h"
+  unique_id: internet_media_3h
+  entity_id: sensor.ookla_speedtest_download_plan_compliance
+  state_characteristic: mean
+  max_age:
+    hours: 3
+
+# 📉 Instabilidade
+- platform: statistics
+  name: "Internet Desvio"
+  unique_id: internet_desvio
+  entity_id: sensor.ookla_speedtest_download_plan_compliance
+  state_characteristic: standard_deviation
+  max_age:
+    hours: 3

@@ -1,0 +1,112 @@
+# ============================================================
+#  ENERGIA - CUSTO MENSAL (Histórico Manual)
+#  Observação:
+#   - Valores em R$
+#   - Ajuste "max" conforme sua realidade
+# ============================================================
+
+energia_custo_mes_atual:
+  name: Energia - Custo Mês Atual
+  icon: mdi:currency-brl
+  min: 0
+  max: 10000
+  step: 0.01
+  mode: box
+  unit_of_measurement: "R$"
+
+energia_custo_mes_1:
+  name: Energia - Custo Mês 1
+  icon: mdi:currency-brl
+  min: 0
+  max: 10000
+  step: 0.01
+  mode: box
+  unit_of_measurement: "R$"
+
+energia_custo_mes_2:
+  name: Energia - Custo Mês 2
+  icon: mdi:currency-brl
+  min: 0
+  max: 10000
+  step: 0.01
+  mode: box
+  unit_of_measurement: "R$"
+
+energia_custo_mes_3:
+  name: Energia - Custo Mês 3
+  icon: mdi:currency-brl
+  min: 0
+  max: 10000
+  step: 0.01
+  mode: box
+  unit_of_measurement: "R$"
+
+energia_custo_mes_4:
+  name: Energia - Custo Mês 4
+  icon: mdi:currency-brl
+  min: 0
+  max: 10000
+  step: 0.01
+  mode: box
+  unit_of_measurement: "R$"
+
+energia_custo_mes_5:
+  name: Energia - Custo Mês 5
+  icon: mdi:currency-brl
+  min: 0
+  max: 10000
+  step: 0.01
+  mode: box
+  unit_of_measurement: "R$"
+
+# ============================================================
+#  UMIDADE REFERÊNCIA
+#  Observação:
+#   - Valores em %
+#   - Ajuste "max" conforme sua realidade
+# ============================================================
+
+sala_tv_umidade_referencia:
+  name: Sala TV Umidade Referência
+  icon: mdi:water-percent
+  min: 0
+  max: 100
+  step: 0.1
+  mode: box
+  unit_of_measurement: "%"
+  
+sala_jantar_umidade_referencia:
+  name: Sala Jantar Umidade Referência
+  icon: mdi:water-percent
+  min: 0
+  max: 100
+  step: 0.1
+  mode: box
+  unit_of_measurement: "%"
+
+cozinha_umidade_referencia:
+  name: Cozinha Umidade Referência
+  icon: mdi:water-percent
+  min: 0
+  max: 100
+  step: 0.1
+  mode: box
+  unit_of_measurement: "%"
+
+escritorio_umidade_referencia:
+  name: Escritório Umidade Referência
+  icon: mdi:water-percent
+  min: 0
+  max: 100
+  step: 0.1
+  mode: box
+  unit_of_measurement: "%"
+
+suite_umidade_referencia:
+  name: Suíte Umidade Referência
+  icon: mdi:water-percent
+  min: 0
+  max: 100
+  step: 0.1
+  mode: box
+  unit_of_measurement: "%"

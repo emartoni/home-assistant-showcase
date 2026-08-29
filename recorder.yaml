@@ -1,0 +1,394 @@
+# ============================================================
+# RECORDER
+#
+# Define quais entidades terão seus estados gravados no banco
+# de dados do Home Assistant.
+#
+# Estratégia utilizada:
+#   - Domínios de controle são incluídos integralmente;
+#   - Sensores são incluídos individualmente;
+#   - Entidades de interface, comandos, câmeras e diagnósticos
+#     sem valor histórico são excluídos.
+#
+# Como sensor não está incluído integralmente em "domains",
+# somente os sensores listados explicitamente em "entities"
+# terão histórico gravado.
+# ============================================================
+
+# Quantidade de dias mantidos no banco de dados.
+purge_keep_days: 30
+
+# Intervalo, em segundos, entre commits no banco de dados.
+# Um valor maior reduz operações de escrita no armazenamento.
+commit_interval: 30
+
+include:
+  # Domínios gravados integralmente.
+  domains:
+    - light
+    - switch
+    - cover
+    - climate
+    - lock
+    - vacuum
+    - media_player
+    - person
+    - binary_sensor
+    - input_number
+    - input_text
+    - input_datetime
+
+  # Entidades individuais gravadas.
+  entities:
+
+    # --------------------------------------------------------
+    # ENERGIA SOLAR E REDE ELÉTRICA
+    # --------------------------------------------------------
+
+    # Produção e estado do inversor Solis.
+    - sensor.garagem_inversor_solis_inverter_generation_today
+    - sensor.garagem_inversor_solis_inverter_generation_this_month
+    - sensor.garagem_inversor_solis_inverter_ac_power
+    - sensor.garagem_inversor_solis_inverter_dc_power
+    - sensor.solis_inverter_0578_inverter_temperature
+    - sensor.solis_inverter_0578_inverter_status
+    - sensor.garagem_inversor_solis_inverter_runtime_today
+    - sensor.garagem_inversor_solis_grid_l1_voltage
+    - sensor.garagem_inversor_solis_collector_state
+    - sensor.solis_inverter_0578_total_energy
+    - sensor.medidor_energia_total_production
+    - sensor.inversor_solis_geracao_solar_diaria
+    - sensor.inverter_ac_power_kw
+    - sensor.inverter_dc_power_kw
+
+    # Previsão de produção solar.
+    - sensor.solcast_pv_forecast_forecast_today
+    - sensor.solcast_pv_forecast_forecast_tomorrow
+    - sensor.solcast_pv_forecast_forecast_day_3
+    - sensor.solcast_pv_forecast_forecast_day_4
+    - sensor.solcast_pv_forecast_forecast_day_5
+    - sensor.solcast_pv_forecast_forecast_day_6
+    - sensor.solcast_pv_forecast_forecast_day_7
+    - sensor.solcast_pv_forecast_peak_forecast_today
+
+    # Fluxo de energia e balanço diário.
+    - sensor.phase_a_b_power_today
+    - sensor.potencia_solar_utilizada
+    - sensor.potencia_solar_utilizada_diaria
+    - sensor.potencia_para_rede_retornada
+    - sensor.potencia_da_rede_utilizada
+    - sensor.potencia_da_rede_utilizada_diaria
+    - sensor.balanco_diario_de_energia
+    - sensor.energia_voltada_a_rede_gauge
+    - sensor.energia_retornada_para_rede
+    - sensor.energy_to_grid_compensation
+    - sensor.energy_grid_potencia_da_rede_utilizada_potencia_para_rede_retornada_net_power
+    - sensor.energia_importada_da_rede
+    - sensor.energia_importada_da_rede_cost
+    - sensor.daily_import
+    - sensor.daily_export
+    - sensor.monthly_import
+    - sensor.monthly_export
+
+    # Indicadores de consumo, autoconsumo e eficiência.
+    - sensor.consumo_por_hora
+    - sensor.consumo_low_carbon_hoje
+    - sensor.energia_autoconsumida_hoje
+    - sensor.auto_suficiencia_energetica_hoje
+    - sensor.autoconsumo_direto_hoje
+    - sensor.solar_eficiencia_do_dia
+    - sensor.economia_diaria_por_geracao_solar
+    - sensor.economia_solar_acumulada_estimada
+    - sensor.retorno_do_investimento_solar
+    - sensor.percentual_conta_compensada
+    - sensor.percentual_de_custo_noturno
+    - sensor.energia_gasto_mensal
+
+    # Tarifas e informações ambientais da rede.
+    - sensor.bandeira_tarifaria
+    - sensor.tarifa_de_energia
+    - sensor.electricity_maps_co2_intensity
+    - sensor.electricity_maps_grid_fossil_fuel_percentage
+
+
+    # --------------------------------------------------------
+    # GRÁFICOS E MEDIÇÕES DE ENERGIA
+    # --------------------------------------------------------
+
+    - sensor.tomada_maquina_lavar_kwh
+    - sensor.tomada_roteador_sala_kwh
+    - sensor.tomada_roteador_kwh
+    - sensor.luz_quintal_energy
+    - sensor.smart_plug_energia_total
+    - sensor.rele_camera_garagem_total_energy
+
+
+    # --------------------------------------------------------
+    # CONSUMO DE ENERGIA POR CÔMODO
+    # --------------------------------------------------------
+
+    # Totais diários por cômodo.
+    - sensor.consumo_diario_sala_de_tv
+    - sensor.consumo_diario_sala_de_jantar
+    - sensor.consumo_diario_cozinha
+    - sensor.consumo_diario_suite
+    - sensor.consumo_diario_garagem
+
+    # Sala de TV.
+    - sensor.sala_tv_central_light_energy
+    - sensor.sala_tv_spot_frente_light_energy
+    - sensor.sala_tv_spot_fundo_light_energy
+    - sensor.sala_tv_spot_lateral_light_energy
+    - sensor.sala_tv_numero_light_energy
+
+    # Sala de jantar.
+    - sensor.jantar_aparador_light_energy
+    - sensor.jantar_central_light_energy
+    - sensor.jantar_balizador_fundo_light_energy
+    - sensor.jantar_balizardor_corredor_light_energy
+    - sensor.jantar_jardim_light_energy
+
+    # Cozinha.
+    - sensor.cozinha_central_light_energy
+    - sensor.cozinha_led_light_energy
+    - sensor.pendente_jantar_energy
+    - sensor.cozinha_corredor_light_energy
+
+    # Suíte.
+    - sensor.luz_quarto_laptop_energy
+    - sensor.luz_quarto_ventilador_1_energy
+    - sensor.luz_quarto_ventilador_2_energy
+    - sensor.tomada_cpap_kwh
+    - sensor.tomada_laptop_kwh
+    - sensor.luz_quarto_ventilador_1_power
+    - sensor.luz_quarto_ventilador_2_power
+
+    # Garagem.
+    - sensor.garagem_light_energy
+    - sensor.garagem_energy
+    - sensor.frente_direita_mainstream_energy
+    - sensor.frente_esquerda_mainstream_energy
+
+    # Quintal e tomadas.
+    - sensor.aquarius_10a_smart_socket_plug_energia_total
+
+
+    # --------------------------------------------------------
+    # TEMPERATURA E HUMIDADE POR CÔMODO
+    # --------------------------------------------------------
+
+    # Sala de TV.
+    - sensor.temperature_and_humidity_sensor_3_temperature
+    - sensor.temperature_and_humidity_sensor_3_humidity
+
+    # Suíte.
+    - sensor.temperature_and_humidity_sensor_4_temperature
+    - sensor.temperature_and_humidity_sensor_4_humidity
+
+    # Sala de jantar.
+    - sensor.sensor_sala_jantar_temperature
+    - sensor.sensor_sala_jantar_humidity
+
+    # Cozinha.
+    - sensor.sensor_cozinha_temperature
+    - sensor.sensor_cozinha_humidity
+
+    # Escritório.
+    - sensor.sensor_escritorio_temperature
+    - sensor.sensor_escritorio_humidity
+
+
+    # --------------------------------------------------------
+    # BATERIAS
+    # --------------------------------------------------------
+
+    # Sensores de temperatura e humidade.
+    - sensor.temperature_and_humidity_sensor_3_battery
+    - sensor.temperature_and_humidity_sensor_4_battery
+    - sensor.sensor_sala_jantar_battery
+    - sensor.sensor_cozinha_battery
+
+    # Dispositivos móveis.
+    - sensor.galaxy_watch_8_battery_level
+    - sensor.s25_ultra_battery_level
+
+
+    # --------------------------------------------------------
+    # RASPBERRY PI E SISTEMA
+    # --------------------------------------------------------
+
+    - sensor.system_monitor_processor_temperature
+    - sensor.system_monitor_processor_use
+    - sensor.system_monitor_memory_usage
+    - sensor.system_monitor_disk_use
+    - sensor.system_monitor_disk_free
+    - sensor.system_monitor_network_throughput_in_end0
+    - sensor.system_monitor_network_throughput_out_end0
+    - sensor.tamanho_total_disco
+    - sensor.uptime
+
+
+    # --------------------------------------------------------
+    # INTERNET E ROTEADOR
+    # --------------------------------------------------------
+
+    # Testes de velocidade.
+    - sensor.ookla_speedtest_ping
+    - sensor.ookla_speedtest_download
+    - sensor.ookla_speedtest_upload
+    - sensor.ookla_speedtest_server
+    - sensor.ookla_speedtest_download_plan_compliance
+    - sensor.ookla_speedtest_upload_plan_compliance
+
+    # Qualidade da conexão.
+    - sensor.qualidade_da_internet
+    - sensor.qualidade_da_internet_limitada
+    - sensor.estado_da_internet
+    - sensor.internet_media_3h
+    - sensor.internet_desvio
+
+    # Roteador Huawei.
+    - sensor.huawei_router_total_clients
+    - sensor.huawei_router_uptime
+
+    # Cloudflare Tunnel.
+    - sensor.cloudflare_tunnel_ha_tunnel
+
+
+    # --------------------------------------------------------
+    # HYUNDAI CRETA
+    # --------------------------------------------------------
+
+    # Estado, posição e atualização do veículo.
+    - sensor.creta_last_updated_at
+    - sensor.creta_timeline
+    - sensor.creta_local_inteligente
+    - device_tracker.creta_location
+
+    # Combustível, bateria e autonomia.
+    - sensor.creta_fuel_level
+    - sensor.creta_car_battery_level
+    - sensor.creta_total_driving_range
+
+    # Odômetro e viagem.
+    - sensor.creta_odometer
+    - sensor.creta_last_trip_cost
+
+    # --------------------------------------------------------
+    # CÂMERAS E SEGURANÇA
+    # --------------------------------------------------------
+
+    # Contadores de câmeras.
+    - sensor.total_cameras_off_template
+    - sensor.total_cameras_on_template
+    - sensor.total_cameras_off_frente
+    - sensor.total_cameras_off_quintal
+    - sensor.cameras_offline_lista
+
+
+    # --------------------------------------------------------
+    # CONTADORES GERAIS DO DASHBOARD
+    # --------------------------------------------------------
+
+    # Luzes.
+    - sensor.total_lights_on_template
+    - sensor.total_lights_on_template_2
+    - sensor.total_lights_count_template
+    - sensor.total_unavailable_template
+
+    # Interruptores e tomadas.
+    - sensor.total_switches_on_template
+    - sensor.total_switches_off
+
+    # Atualizações.
+    - sensor.total_updates_available
+
+    # Baterias.
+    - sensor.total_sensor_batteries_template
+    - sensor.total_sensor_low_batteries_template
+
+
+    # --------------------------------------------------------
+    # BACKUP E SAÚDE DO HOME ASSISTANT
+    # --------------------------------------------------------
+
+    # Evento do backup automático.
+    - event.backup_automatic_backup
+
+    # Estado e datas do backup.
+    - sensor.estado_do_backup
+    - sensor.backup_last_attempted_automatic_backup
+    - sensor.backup_next_scheduled_automatic_backup
+
+    # Saúde geral e problemas ativos.
+    - sensor.system_ha_global_health_score
+    - sensor.active_issues
+
+
+# ----------------------------------------------------------
+# ENTIDADES EXCLUÍDAS DO HISTÓRICO
+# ----------------------------------------------------------
+
+exclude:
+  domains:
+    # Domínios que representam ações, comandos, eventos,
+    # configurações, previsões ou dados sem valor histórico
+    # contínuo para este dashboard.
+    - automation
+    - script
+    - scene
+    - update
+    - button
+    - number
+    - select
+    - text
+    - weather
+    - zone
+    - sun
+
+  entities:
+
+    # --------------------------------------------------------
+    # SENSORES DE INTERFACE E APRESENTAÇÃO
+    #
+    # São usados para exibição no dashboard e não representam
+    # dados históricos relevantes.
+    # --------------------------------------------------------
+
+    - sensor.custom_welcome_card
+    - sensor.custom_weather
+    - sensor.custom_forecast_daily
+    - sensor.time
+    - sensor.date
+    - sensor.date_time
+    - sensor.date_time_iso
+    - sensor.internet_time
+
+
+    # --------------------------------------------------------
+    # CÂMERAS
+    #
+    # As entidades camera representam streams e imagens.
+    # O histórico do stream não agrega valor ao recorder.
+    # Os sensores de energia e status das câmeras permanecem
+    # incluídos separadamente.
+    # --------------------------------------------------------
+
+    - camera.frente_direita_mainstream
+    - camera.frente_direita_substream
+    - camera.frente_esquerda_mainstream
+    - camera.frente_esquerda_substream
+    - camera.garagem_mainstream
+    - camera.garagem_substream
+    - camera.quintal_direita_mainstream
+    - camera.quintal_direita_substream
+    - camera.quintal_esquerda_mainstream
+    - camera.quintal_esquerda_substream
+
+
+    # --------------------------------------------------------
+    # ENTIDADES ESPECÍFICAS SEM HISTÓRICO NECESSÁRIO
+    # --------------------------------------------------------
+
+    - binary_sensor.s25_ultra_device_locked
+    - sensor.s25_ultra_network_type

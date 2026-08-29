@@ -1,0 +1,1038 @@
+# ============================================================
+#  CONFORTO (Template Sensors)
+#  - Índide de conforto
+#  - Texto de conforto
+#  - Variação de Umidade
+#  - Estado da ventilação
+# ============================================================
+
+- sensor:
+
+    # ------------------------------------------------------------
+    # SALA DE TV
+    # ------------------------------------------------------------
+    - name: "Sala TV Conforto"
+      unique_id: sala_tv_conforto
+      icon: mdi:sofa
+
+      variables:
+        temp: "{{ states('sensor.temperature_and_humidity_sensor_3_temperature') | float(none) }}"
+        hum: "{{ states('sensor.temperature_and_humidity_sensor_3_humidity') | float(none) }}"
+        referencia: "{{ states('input_number.sala_tv_umidade_referencia') | float(none) }}"
+
+        temp_externa: "{{ states('sensor.google_weather_temperatura') | float(none) }}"
+        hum_externa: "{{ states('sensor.google_weather_umidade') | float(none) }}"
+
+      availability: >-
+        {{ temp is not none and hum is not none }}
+
+      state: >-
+        {% if temp is none or hum is none %}
+          Indisponível
+        {% else %}
+          {% set temp_penalty =
+              0 if 20 <= temp <= 26 else
+              50 if temp <= 14 or temp >= 32 else
+              ((20 - temp) * (50/6)) if temp < 20 else
+              ((temp - 26) * (50/6))
+          %}
+          {% set hum_penalty =
+              0 if 40 <= hum <= 60 else
+              50 if hum <= 20 or hum >= 80 else
+              ((40 - hum) * (50/20)) if hum < 40 else
+              ((hum - 60) * (50/20))
+          %}
+          {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+          {% if score >= 80 %}
+            Confortável
+          {% elif score >= 60 %}
+            Atenção
+          {% else %}
+            Desconfortável
+          {% endif %}
+        {% endif %}
+
+      attributes:
+        color: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              rgb(0, 128, 0)
+            {% elif score >= 60 %}
+              rgb(255, 165, 0)
+            {% else %}
+              rgb(255, 0, 0)
+            {% endif %}
+          {% endif %}
+        background: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              rgba(0, 128, 0, 0.2)
+            {% elif score >= 60 %}
+              rgba(255, 165, 0, 0.2)
+            {% else %}
+              rgba(255, 0, 0, 0.2)
+            {% endif %}
+          {% endif %}
+        indice: >-
+          {% if temp is none or hum is none %}
+            {{ none }}
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {{ [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) }}
+          {% endif %}
+
+        umidade_status: >-
+          {% if hum is none %}
+            Indisponível
+          {% elif hum < 40 %}
+            Use umidificador
+          {% elif hum > 60 %}
+            Use desumidificador
+          {% else %}
+            Nenhuma ação
+          {% endif %}
+
+        umidade_cor: >-
+          {% if hum is none %}
+            grey
+          {% elif hum < 40 %}
+            deepskyblue
+          {% elif hum > 60 %}
+            red
+          {% else %}
+            green
+          {% endif %}
+
+        umidade_icone: >-
+          {% if hum is none %}
+            mdi:help-circle-outline
+          {% elif hum < 40 %}
+            mdi:water-minus
+          {% elif hum > 60 %}
+            mdi:water-alert
+          {% else %}
+            mdi:water-check
+          {% endif %}
+
+        status_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            Indisponível
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            Ventilar agora
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            Ventilação recomendada
+          {% else %}
+            Ventilação não necessária
+          {% endif %}
+          
+        icon_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            mdi:fan-alert
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            mdi:fan-chevron-up
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            mdi:fan
+          {% else %}
+            mdi:fan-off
+          {% endif %}
+
+        color_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            grey
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            red
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            orange
+          {% else %}
+            grey
+          {% endif %}
+
+        qualidade_ar_externo: >-
+          {% if temp_externa is none or hum_externa is none %}
+            Indisponível
+          {% elif 18 <= temp_externa <= 28 and 30 <= hum_externa <= 70 %}
+            Ar externo <strong>favorável</strong>
+          {% elif 15 <= temp_externa <= 32 and 25 <= hum_externa <= 80 %}
+            Ar externo <strong>moderado</strong>
+          {% else %}
+            Ar externo <strong>desfavorável</strong>
+          {% endif %}
+
+    # ------------------------------------------------------------
+    # SALA DE JANTAR
+    # ------------------------------------------------------------
+    - name: "Sala Jantar Conforto"
+      unique_id: sala_jantar_conforto
+      icon: mdi:silverware-fork-knife
+
+      variables:
+        temp: "{{ states('sensor.sensor_sala_jantar_temperature') | float(none) }}"
+        hum: "{{ states('sensor.sensor_sala_jantar_humidity') | float(none) }}"
+        referencia: "{{ states('input_number.sala_jantar_umidade_referencia') | float(none) }}"
+
+        temp_externa: "{{ states('sensor.google_weather_temperatura') | float(none) }}"
+        hum_externa: "{{ states('sensor.google_weather_umidade') | float(none) }}"
+
+      availability: >-
+        {{ temp is not none and hum is not none }}
+
+      state: >-
+        {% if temp is none or hum is none %}
+          Indisponível
+        {% else %}
+          {% set temp_penalty =
+              0 if 20 <= temp <= 26 else
+              50 if temp <= 14 or temp >= 32 else
+              ((20 - temp) * (50/6)) if temp < 20 else
+              ((temp - 26) * (50/6))
+          %}
+          {% set hum_penalty =
+              0 if 40 <= hum <= 60 else
+              50 if hum <= 20 or hum >= 80 else
+              ((40 - hum) * (50/20)) if hum < 40 else
+              ((hum - 60) * (50/20))
+          %}
+          {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+          {% if score >= 80 %}
+            Confortável
+          {% elif score >= 60 %}
+            Atenção
+          {% else %}
+            Desconfortável
+          {% endif %}
+        {% endif %}
+
+      attributes:
+        color: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              green
+            {% elif score >= 60 %}
+              orange
+            {% else %}
+              red
+            {% endif %}
+          {% endif %}
+        background: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              rgba(0, 128, 0, 0.2)
+            {% elif score >= 60 %}
+              rgba(255, 165, 0, 0.2)
+            {% else %}
+              rgba(255, 0, 0, 0.2)
+            {% endif %}
+          {% endif %}
+        indice: >-
+          {% if temp is none or hum is none %}
+            {{ none }}
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {{ [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) }}
+          {% endif %}
+
+        umidade_nivel: >-
+          {% if hum is none %}
+            Indisponível
+          {% elif hum < 40 %}
+            Baixa
+          {% elif hum > 60 %}
+            Alta
+          {% else %}
+            Adequada
+          {% endif %}
+
+        umidade_status: >-
+          {% if hum is none %}
+            Indisponível
+          {% elif hum < 40 %}
+            Use umidificador
+          {% elif hum > 60 %}
+            Use desumidificador
+          {% else %}
+            Nenhuma ação
+          {% endif %}
+
+        umidade_cor: >-
+          {% if hum is none %}
+            grey
+          {% elif hum < 40 %}
+            deepskyblue
+          {% elif hum > 60 %}
+            red
+          {% else %}
+            green
+          {% endif %}
+
+        umidade_icone: >-
+          {% if hum is none %}
+            mdi:help-circle-outline
+          {% elif hum < 40 %}
+            mdi:water-minus
+          {% elif hum > 60 %}
+            mdi:water-alert
+          {% else %}
+            mdi:water-check
+          {% endif %}
+
+        status_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            Indisponível
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            Ventilar agora
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            Ventilação recomendada
+          {% else %}
+            Ventilação não necessária
+          {% endif %}
+          
+        icon_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            mdi:fan-alert
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            mdi:fan-chevron-up
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            mdi:fan
+          {% else %}
+            mdi:fan-off
+          {% endif %}
+
+        color_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            grey
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            red
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            orange
+          {% else %}
+            grey
+          {% endif %}
+
+        qualidade_ar_externo: >-
+          {% if temp_externa is none or hum_externa is none %}
+            Indisponível
+          {% elif 18 <= temp_externa <= 28 and 30 <= hum_externa <= 70 %}
+            Ar externo <strong>favorável</strong>
+          {% elif 15 <= temp_externa <= 32 and 25 <= hum_externa <= 80 %}
+            Ar externo <strong>moderado</strong>
+          {% else %}
+            Ar externo <strong>desfavorável</strong>
+          {% endif %}
+
+    # ------------------------------------------------------------
+    # COZINHA
+    # ------------------------------------------------------------
+    - name: "Cozinha Conforto"
+      unique_id: cozinha_conforto
+      icon: mdi:fridge
+
+      variables:
+        temp: "{{ states('sensor.sensor_cozinha_temperature') | float(none) }}"
+        hum: "{{ states('sensor.sensor_cozinha_humidity') | float(none) }}"
+        referencia: "{{ states('input_number.cozinha_umidade_referencia') | float(none) }}"
+
+        temp_externa: "{{ states('sensor.google_weather_temperatura') | float(none) }}"
+        hum_externa: "{{ states('sensor.google_weather_umidade') | float(none) }}"
+
+      availability: >-
+        {{ temp is not none and hum is not none }}
+
+      state: >-
+        {% if temp is none or hum is none %}
+          Indisponível
+        {% else %}
+          {% set temp_penalty =
+              0 if 20 <= temp <= 26 else
+              50 if temp <= 14 or temp >= 32 else
+              ((20 - temp) * (50/6)) if temp < 20 else
+              ((temp - 26) * (50/6))
+          %}
+          {% set hum_penalty =
+              0 if 40 <= hum <= 60 else
+              50 if hum <= 20 or hum >= 80 else
+              ((40 - hum) * (50/20)) if hum < 40 else
+              ((hum - 60) * (50/20))
+          %}
+          {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+          {% if score >= 80 %}
+            Confortável
+          {% elif score >= 60 %}
+            Atenção
+          {% else %}
+            Desconfortável
+          {% endif %}
+        {% endif %}
+
+      attributes:
+        color: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              green
+            {% elif score >= 60 %}
+              orange
+            {% else %}
+              red
+            {% endif %}
+          {% endif %}
+        background: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              rgba(0, 128, 0, 0.2)
+            {% elif score >= 60 %}
+              rgba(255, 165, 0, 0.2)
+            {% else %}
+              rgba(255, 0, 0, 0.2)
+            {% endif %}
+          {% endif %}
+        indice: >-
+          {% if temp is none or hum is none %}
+            {{ none }}
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {{ [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) }}
+          {% endif %}
+
+        umidade_nivel: >-
+          {% if hum is none %}
+            Indisponível
+          {% elif hum < 40 %}
+            Baixa
+          {% elif hum > 60 %}
+            Alta
+          {% else %}
+            Adequada
+          {% endif %}
+
+        umidade_status: >-
+          {% if hum is none %}
+            Indisponível
+          {% elif hum < 40 %}
+            Use umidificador
+          {% elif hum > 60 %}
+            Use desumidificador
+          {% else %}
+            Nenhuma ação
+          {% endif %}
+
+        umidade_cor: >-
+          {% if hum is none %}
+            grey
+          {% elif hum < 40 %}
+            deepskyblue
+          {% elif hum > 60 %}
+            red
+          {% else %}
+            green
+          {% endif %}
+
+        umidade_icone: >-
+          {% if hum is none %}
+            mdi:help-circle-outline
+          {% elif hum < 40 %}
+            mdi:water-minus
+          {% elif hum > 60 %}
+            mdi:water-alert
+          {% else %}
+            mdi:water-check
+          {% endif %}
+
+        status_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            Indisponível
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            Ventilar agora
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            Ventilação recomendada
+          {% else %}
+            Ventilação não necessária
+          {% endif %}
+          
+        icon_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            mdi:fan-alert
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            mdi:fan-chevron-up
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            mdi:fan
+          {% else %}
+            mdi:fan-off
+          {% endif %}
+
+        color_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            grey
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            red
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            orange
+          {% else %}
+            grey
+          {% endif %}
+
+        qualidade_ar_externo: >-
+          {% if temp_externa is none or hum_externa is none %}
+            Indisponível
+          {% elif 18 <= temp_externa <= 28 and 30 <= hum_externa <= 70 %}
+            Ar externo <strong>favorável</strong>
+          {% elif 15 <= temp_externa <= 32 and 25 <= hum_externa <= 80 %}
+            Ar externo <strong>moderado</strong>
+          {% else %}
+            Ar externo <strong>desfavorável</strong>
+          {% endif %}
+
+    # ------------------------------------------------------------
+    # ESCRITÓRIO
+    # ------------------------------------------------------------
+    - name: "Escritório Conforto"
+      unique_id: escritorio_conforto
+      icon: mdi:desktop-classic
+
+      variables:
+        temp: "{{ states('sensor.sensor_escritorio_temperature') | float(none) }}"
+        hum: "{{ states('sensor.sensor_escritorio_humidity') | float(none) }}"
+        referencia: "{{ states('input_number.escritorio_umidade_referencia') | float(none) }}"
+
+        temp_externa: "{{ states('sensor.google_weather_temperatura') | float(none) }}"
+        hum_externa: "{{ states('sensor.google_weather_umidade') | float(none) }}"
+
+      availability: >-
+        {{ temp is not none and hum is not none }}
+
+      state: >-
+        {% if temp is none or hum is none %}
+          Indisponível
+        {% else %}
+          {% set temp_penalty =
+              0 if 20 <= temp <= 26 else
+              50 if temp <= 14 or temp >= 32 else
+              ((20 - temp) * (50/6)) if temp < 20 else
+              ((temp - 26) * (50/6))
+          %}
+          {% set hum_penalty =
+              0 if 40 <= hum <= 60 else
+              50 if hum <= 20 or hum >= 80 else
+              ((40 - hum) * (50/20)) if hum < 40 else
+              ((hum - 60) * (50/20))
+          %}
+          {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+          {% if score >= 80 %}
+            Confortável
+          {% elif score >= 60 %}
+            Atenção
+          {% else %}
+            Desconfortável
+          {% endif %}
+        {% endif %}
+
+      attributes:
+        color: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              green
+            {% elif score >= 60 %}
+              orange
+            {% else %}
+              red
+            {% endif %}
+          {% endif %}
+        background: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              rgba(0, 128, 0, 0.2)
+            {% elif score >= 60 %}
+              rgba(255, 165, 0, 0.2)
+            {% else %}
+              rgba(255, 0, 0, 0.2)
+            {% endif %}
+          {% endif %}
+        indice: >-
+          {% if temp is none or hum is none %}
+            {{ none }}
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {{ [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) }}
+          {% endif %}
+
+        umidade_nivel: >-
+          {% if hum is none %}
+            Indisponível
+          {% elif hum < 40 %}
+            Baixa
+          {% elif hum > 60 %}
+            Alta
+          {% else %}
+            Adequada
+          {% endif %}
+
+        umidade_status: >-
+          {% if hum is none %}
+            Indisponível
+          {% elif hum < 40 %}
+            Use umidificador
+          {% elif hum > 60 %}
+            Use desumidificador
+          {% else %}
+            Nenhuma ação
+          {% endif %}
+
+        umidade_cor: >-
+          {% if hum is none %}
+            grey
+          {% elif hum < 40 %}
+            deepskyblue
+          {% elif hum > 60 %}
+            red
+          {% else %}
+            green
+          {% endif %}
+
+        umidade_icone: >-
+          {% if hum is none %}
+            mdi:help-circle-outline
+          {% elif hum < 40 %}
+            mdi:water-minus
+          {% elif hum > 60 %}
+            mdi:water-alert
+          {% else %}
+            mdi:water-check
+          {% endif %}
+
+        status_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            Indisponível
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            Ventilar agora
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            Ventilação recomendada
+          {% else %}
+            Ventilação não necessária
+          {% endif %}
+          
+        icon_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            mdi:fan-alert
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            mdi:fan-chevron-up
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            mdi:fan
+          {% else %}
+            mdi:fan-off
+          {% endif %}
+
+        color_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            grey
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            red
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            orange
+          {% else %}
+            grey
+          {% endif %}
+
+        qualidade_ar_externo: >-
+          {% if temp_externa is none or hum_externa is none %}
+            Indisponível
+          {% elif 18 <= temp_externa <= 28 and 30 <= hum_externa <= 70 %}
+            Ar externo <strong>favorável</strong>
+          {% elif 15 <= temp_externa <= 32 and 25 <= hum_externa <= 80 %}
+            Ar externo <strong>moderado</strong>
+          {% else %}
+            Ar externo <strong>desfavorável</strong>
+          {% endif %}
+
+    # ------------------------------------------------------------
+    # SUITE
+    # ------------------------------------------------------------
+    - name: "Suite Conforto"
+      unique_id: suite_conforto
+      icon: mdi:bed
+
+      variables:
+        temp: "{{ states('sensor.temperature_and_humidity_sensor_4_temperature') | float(none) }}"
+        hum: "{{ states('sensor.temperature_and_humidity_sensor_4_humidity') | float(none) }}"
+        referencia: "{{ states('input_number.suite_umidade_referencia') | float(none) }}"
+
+        temp_externa: "{{ states('sensor.google_weather_temperatura') | float(none) }}"
+        hum_externa: "{{ states('sensor.google_weather_umidade') | float(none) }}"
+
+      availability: >-
+        {{ temp is not none and hum is not none }}
+
+      state: >-
+        {% if temp is none or hum is none %}
+          Indisponível
+        {% else %}
+          {% set temp_penalty =
+              0 if 20 <= temp <= 26 else
+              50 if temp <= 14 or temp >= 32 else
+              ((20 - temp) * (50/6)) if temp < 20 else
+              ((temp - 26) * (50/6))
+          %}
+          {% set hum_penalty =
+              0 if 40 <= hum <= 60 else
+              50 if hum <= 20 or hum >= 80 else
+              ((40 - hum) * (50/20)) if hum < 40 else
+              ((hum - 60) * (50/20))
+          %}
+          {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+          {% if score >= 80 %}
+            Confortável
+          {% elif score >= 60 %}
+            Atenção
+          {% else %}
+            Desconfortável
+          {% endif %}
+        {% endif %}
+
+      attributes:
+        color: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              green
+            {% elif score >= 60 %}
+              orange
+            {% else %}
+              red
+            {% endif %}
+          {% endif %}
+        background: >-
+          {% if temp is none or hum is none %}
+            grey
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {% set score = [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) %}
+            {% if score >= 80 %}
+              rgba(0, 128, 0, 0.2)
+            {% elif score >= 60 %}
+              rgba(255, 165, 0, 0.2)
+            {% else %}
+              rgba(255, 0, 0, 0.2)
+            {% endif %}
+          {% endif %}
+        indice: >-
+          {% if temp is none or hum is none %}
+            {{ none }}
+          {% else %}
+            {% set temp_penalty =
+                0 if 20 <= temp <= 26 else
+                50 if temp <= 14 or temp >= 32 else
+                ((20 - temp) * (50/6)) if temp < 20 else
+                ((temp - 26) * (50/6))
+            %}
+            {% set hum_penalty =
+                0 if 40 <= hum <= 60 else
+                50 if hum <= 20 or hum >= 80 else
+                ((40 - hum) * (50/20)) if hum < 40 else
+                ((hum - 60) * (50/20))
+            %}
+            {{ [0, [100, 100 - temp_penalty - hum_penalty] | min] | max | round(0) }}
+          {% endif %}
+
+        umidade_nivel: >-
+          {% if hum is none %}
+            Indisponível
+          {% elif hum < 40 %}
+            Baixa
+          {% elif hum > 60 %}
+            Alta
+          {% else %}
+            Adequada
+          {% endif %}
+
+        umidade_status: >-
+          {% if hum is none %}
+            Indisponível
+          {% elif hum < 40 %}
+            Use umidificador
+          {% elif hum > 60 %}
+            Use desumidificador
+          {% else %}
+            Nenhuma ação
+          {% endif %}
+
+        umidade_cor: >-
+          {% if hum is none %}
+            grey
+          {% elif hum < 40 %}
+            deepskyblue
+          {% elif hum > 60 %}
+            red
+          {% else %}
+            green
+          {% endif %}
+
+        umidade_icone: >-
+          {% if hum is none %}
+            mdi:help-circle-outline
+          {% elif hum < 40 %}
+            mdi:water-minus
+          {% elif hum > 60 %}
+            mdi:water-alert
+          {% else %}
+            mdi:water-check
+          {% endif %}
+
+        status_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            Indisponível
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            Ventilar agora
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            Ventilação recomendada
+          {% else %}
+            Ventilação não necessária
+          {% endif %}
+          
+        icon_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            mdi:fan-alert
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            mdi:fan-chevron-up
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            mdi:fan
+          {% else %}
+            mdi:fan-off
+          {% endif %}
+
+        color_ventilacao: >-
+          {% set ref = referencia if referencia is not none else hum %}
+          {% set variacao = (hum - ref) if hum is not none else none %}
+          {% if hum is none %}
+            grey
+          {% elif hum >= 70 or (variacao is not none and variacao >= 8) %}
+            red
+          {% elif hum >= 60 or (variacao is not none and variacao >= 4) %}
+            orange
+          {% else %}
+            grey
+          {% endif %}
+
+        qualidade_ar_externo: >-
+          {% if temp_externa is none or hum_externa is none %}
+            Indisponível
+          {% elif 18 <= temp_externa <= 28 and 30 <= hum_externa <= 70 %}
+            Ar externo <strong>favorável</strong>
+          {% elif 15 <= temp_externa <= 32 and 25 <= hum_externa <= 80 %}
+            Ar externo <strong>moderado</strong>
+          {% else %}
+            Ar externo <strong>desfavorável</strong>
+          {% endif %}

@@ -1,0 +1,219 @@
+# ============================================================
+#  ENERGY (Template Sensor)
+# ============================================================
+
+# ------------------------------------------------------------
+#  POTÊNCIA TOTAL CONSUMIDA (Soma das Fases)
+#  - Ajuste a conversão W -> kW conforme sua realidade
+# ------------------------------------------------------------
+- sensor:
+    - name: "Potência Total Consumida"
+      unique_id: potencia_total_consumida
+      unit_of_measurement: "kW"
+      device_class: power
+      state_class: measurement
+      availability: >-
+        {{
+          states('sensor.medidor_energia_phase_a_power')
+            not in ['unknown', 'unavailable', 'none', '']
+          and
+          states('sensor.medidor_energia_phase_b_power')
+            not in ['unknown', 'unavailable', 'none', '']
+        }}
+      state: >-
+        {{
+          (
+            states('sensor.medidor_energia_phase_a_power') | float(0)
+            +
+            states('sensor.medidor_energia_phase_b_power') | float(0)
+          ) | round(3)
+        }}
+
+# ------------------------------------------------------------
+#  POTÊNCIA SOLAR (ORIGINAL E CONVERTIDA)
+#  - Ajuste a conversão W -> kW conforme sua realidade
+# ------------------------------------------------------------
+- sensor:
+    - name: "Inverter AC Power kW"
+      unique_id: inverter_ac_power_kw
+      unit_of_measurement: "kW"
+      device_class: power
+      state_class: measurement
+      state: >
+        {{ states('sensor.garagem_inversor_solis_inverter_ac_power') | float(0) | multiply(0.001) }}
+
+- sensor:
+    - name: "Inverter DC Power kW"
+      unique_id: inverter_dc_power_kw
+      unit_of_measurement: "kW"
+      device_class: power
+      state_class: measurement
+      state: >
+        {{ states('sensor.garagem_inversor_solis_inverter_dc_power') | float(0) | multiply(0.001) }}
+
+# ------------------------------------------------------------
+#  INVERSOR
+# ------------------------------------------------------------
+- sensor:
+    - name: Estado do Inversor
+      unique_id: estado_inversor
+      variables:
+        ger_state: 'generating'
+        ger_min: 0.3
+      state: >
+        {% set s = states('sensor.solis_inverter_0578_inverter_status') %}
+        {% if s == 'generating' %}
+          Gerando
+        {% elif s == 'offline' or s == 'standby' %}
+          Desligado
+        {% else %}
+          Desconhecido
+        {% endif %}
+      attributes:
+        color: >
+          {% set s = states('sensor.solis_inverter_0578_inverter_status') %}
+          {% if s == 'generating' %}
+            rgb(76, 175, 80)
+          {% elif s == 'offline' or s == 'standby' %}
+            rgb(255, 0, 0)
+          {% else %}
+            rgb(128, 128, 128)
+          {% endif %}
+        background: >
+          {% set s = states('sensor.solis_inverter_0578_inverter_status') %}
+          {% if s == 'generating' %}
+            rgba(76, 175, 80, 0.2)
+          {% elif s == 'offline' or s == 'standby' %}
+            rgba(255, 0, 0, 0.2)
+          {% else %}
+            rgba(128, 128, 128, 0.2)
+          {% endif %}
+      availability: >
+        {{ states('sensor.solis_inverter_0578_inverter_status') not in ['unavailable', 'unknown']
+           and states('sensor.inverter_ac_power_kw') not in ['unavailable', 'unknown'] }}
+
+# ------------------------------------------------------------
+# BALANÇOS (kWh)
+# ------------------------------------------------------------
+- sensor:
+    - name: "Balanço Diário de Energia"
+      unique_id: balanco_diario_energia
+      icon: mdi:transmission-tower
+      state_class: measurement
+      unit_of_measurement: "kWh"
+      state: >
+        {% set energia_solar =
+        states('sensor.inversor_solis_geracao_solar_diaria')
+        | float(0) %}
+    
+        {% set energia_usada =
+        states('sensor.phase_a_b_power_today')
+        | float(0) %}
+    
+        {{ (energia_usada - energia_solar)
+        | round(2) }}
+
+    - name: "Balanço Mensal de Energia"
+      unique_id: balanco_mensal_energia
+      icon: mdi:transmission-tower
+      unit_of_measurement: "kWh"
+      state: >
+        {% set energia_solar = states('sensor.garagem_inversor_solis_inverter_generation_this_month') | float(0) %}
+        {% set energia_usada = states('sensor.grid_energy_month') | float(0) %}
+        {{ (energia_usada - energia_solar) | round(2) }}
+        
+    - name: "Autoconsumo Direto Hoje"
+      unique_id: solar_autoconsumo_direto_hoje
+      unit_of_measurement: "kWh"
+      state_class: measurement
+      state: >
+        {% set gerado = states('sensor.inversor_solis_geracao_solar_diaria') | float(0) %}
+        {% set exportado = states('sensor.daily_export') | float(0) %}
+        {{ [gerado - exportado, 0] | max | round(2) }}
+
+# ------------------------------------------------------------
+# POTÊNCIAS (kW)
+# ------------------------------------------------------------
+- sensor:
+    - name: "Potência Solar Utilizada"
+      unique_id: potencia_solar_utilizada
+      icon: mdi:sun-wireless
+      unit_of_measurement: "kW"
+      device_class: power
+      state_class: measurement
+      availability: >-
+        {{
+          states('sensor.inverter_ac_power_kw')
+            not in ['unknown', 'unavailable', 'none', '']
+          and
+          states('sensor.potencia_total_consumida')
+            not in ['unknown', 'unavailable', 'none', '']
+        }}
+      state: >
+        {% set generated = states('sensor.inverter_ac_power_kw') | float(0) %}
+        {% set consumed  = states('sensor.potencia_total_consumida') | float(0) %}
+        {{ [generated, consumed] | min | round(3) }}
+
+- sensor:
+    - name: "Potência da Rede Utilizada"
+      unique_id: potencia_da_rede_utilizada
+      icon: mdi:transmission-tower-export
+      unit_of_measurement: "kW"
+      device_class: power
+      state_class: measurement
+      availability: >-
+        {{
+          states('sensor.inverter_ac_power_kw')
+            not in ['unknown', 'unavailable', 'none', '']
+          and
+          states('sensor.potencia_total_consumida')
+            not in ['unknown', 'unavailable', 'none', '']
+        }}
+      state: >
+        {% set generated = states('sensor.inverter_ac_power_kw') | float(0) %}
+        {% set consumed  = states('sensor.potencia_total_consumida') | float(0) %}
+        {{ [consumed - generated, 0] | max | round(3) }}
+
+- sensor:
+    - name: "Potência para Rede Retornada"
+      unique_id: potencia_para_rede_retornada
+      icon: mdi:transmission-tower-import
+      unit_of_measurement: "kW"
+      device_class: power
+      state_class: measurement
+      availability: >-
+        {{
+          states('sensor.inverter_ac_power_kw')
+            not in ['unknown', 'unavailable', 'none', '']
+          and
+          states('sensor.potencia_total_consumida')
+            not in ['unknown', 'unavailable', 'none', '']
+        }}
+      state: >
+        {% set generated = states('sensor.inverter_ac_power_kw') | float(0) %}
+        {% set consumed  = states('sensor.potencia_total_consumida') | float(0) %}
+        {{ [generated - consumed, 0] | max | round(3) }}
+
+# ------------------------------------------------------------
+# PERCENTUAIS
+# ------------------------------------------------------------
+- sensor:
+    - name: "Percentual de Custo Noturno"
+      unique_id: percentual_custo_noturno
+      icon: mdi:percent
+      unit_of_measurement: "%"
+      availability: >-
+        {{
+          states('sensor.consumo_solar_diario')
+            not in ['unknown', 'unavailable', 'none', '']
+          and
+          states('sensor.consumo_rede_diario')
+            not in ['unknown', 'unavailable', 'none', '']
+        }}
+      state: >
+        {% set solar = states('sensor.consumo_solar_diario') | float(0) %}
+        {% set consumo_total = states('sensor.consumo_rede_diario') | float(0) %}
+        {% set rede = max(consumo_total - solar, 0) %}
+        {% set total = solar + rede %}
+    
+        {{ ((rede / total) * 100) | round(1) if total > 0 else 0 }}

@@ -1,0 +1,258 @@
+# ============================================================
+#  CUSTOM WEATHER (Template Sensor)
+# ============================================================
+- sensor:
+    - name: "Custom Weather"
+      unique_id: custom_weather
+      icon: mdi:weather-cloudy
+
+      variables:
+        icon_base: "/local/weather_google/"
+
+      # State = caminho do SVG (útil para cards que renderizam imagem)
+      state: >
+        {% set condition = states('weather.google_weather') | default('unknown', true) | lower | trim %}
+        {% set suffix = 'day' if is_state('sun.sun', 'above_horizon') else 'night' %}
+        {{ icon_base ~ condition ~ '-' ~ suffix ~ '.svg' }}
+
+      attributes:
+        # ----------------------------
+        # Temperatura
+        # ----------------------------
+        temp: "{{ state_attr('weather.google_weather', 'temperature') | float(0) }}"
+        temp_unit: "{{ state_attr('weather.google_weather', 'temperature_unit') | default('', true) }}"
+        feels_like: "{{ state_attr('weather.google_weather', 'apparent_temperature') | float(0) }}"
+
+        # ----------------------------
+        # Condição / descrição
+        # ----------------------------
+        desc: "{{ states('weather.google_weather') | default('', true) }}"
+        desc_translated: "{{ state_translated('weather.google_weather') | default('', true) }}"
+        
+
+        # ----------------------------
+        # Chuva
+        # ----------------------------
+        precipitation: "{{ states('sensor.google_weather_intensidade_da_precipitacao')|float(0) }}"
+        precipitation_unit: "{{ state_attr('weather.google_weather', 'precipitation_unit') | default('', true) }}"
+        
+        # ----------------------------
+        # Chuva máxima prevista hoje (daily)
+        # ----------------------------
+        max_precipitation_today: "{{ state_attr('sensor.custom_forecast_daily', 'max_precipitation_today')|float(0) }}"
+
+        # ----------------------------
+        # Umidade
+        # ----------------------------
+        humidity: "{{ state_attr('weather.google_weather', 'humidity') | int(0) }}"
+
+        # ----------------------------
+        # Vento
+        # ----------------------------
+        wind_dir: >
+          {% set directions = ['N','NNE','NE','ENE','L','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO','N'] %}
+          {% set degree = state_attr('weather.google_weather', 'wind_bearing') | float(0) %}
+          {% set idx = ((degree + 11.25) / 22.5) | int(0) %}
+          {{ directions[idx] }}
+
+        wind_speed: >
+          {% set wind_speed_kmh = state_attr('weather.google_weather', 'wind_speed') | float(0) %}
+          {% set wind_speed_ms = (wind_speed_kmh / 3.6) %}
+          {{ wind_speed_ms | round(1) }}
+
+        wind_unit: "m/s"
+
+        wind_desc: >
+          {% set wind_speed_kmh = state_attr('weather.google_weather', 'wind_speed') | float(0) %}
+          {% set v = (wind_speed_kmh / 3.6) %}
+          {% if v <= 1 %}Calmo
+          {% elif v <= 6.9 %}Ar leve
+          {% elif v <= 11.9 %}Brisa leve
+          {% elif v <= 19.9 %}Brisa suave
+          {% elif v <= 29.9 %}Brisa moderada
+          {% elif v <= 39.9 %}Brisa fresca
+          {% elif v <= 50.9 %}Brisa forte
+          {% elif v <= 62.9 %}Quase vendaval
+          {% elif v <= 75.9 %}Vendaval
+          {% elif v <= 87.9 %}Vendaval forte
+          {% elif v <= 102.9 %}Tempestade
+          {% elif v <= 117.9 %}Tempestade violenta
+          {% else %}Furacão
+          {% endif %}
+
+# ============================================================
+#  CUSTOM FORECAST HOURLY (Trigger-based Template Sensor)
+# ============================================================
+- trigger:
+    - platform: time_pattern
+      hours: "/1"
+    - platform: homeassistant
+      event: start
+
+    # 🔥 Trigger manual (você dispara quando quiser)
+    - platform: event
+      event_type: refresh_custom_forecast_hourly
+
+  action:
+    - service: weather.get_forecasts
+      target:
+        entity_id: weather.google_weather
+      data:
+        type: hourly
+      response_variable: forecast_hourly
+
+  sensor:
+    - name: "Custom Forecast Hourly"
+      unique_id: custom_forecast_hourly
+      icon: mdi:weather-cloudy-clock
+      state: "{{ now().timestamp() | int(0) }}"
+
+      variables:
+        icon_base: "/local/weather_google/"
+
+        # Lista de forecast (fallback seguro)
+        fc: >
+          {% set data = forecast_hourly.get('weather.google_weather', {}) if forecast_hourly is defined else {} %}
+          {{ data.get('forecast', []) }}
+
+      attributes:
+        forecast_count: >
+          {% set response = forecast_hourly | default({}, true) %}
+          {% set fc = response
+            .get('weather.google_weather', {})
+            .get('forecast', []) or [] %}
+          {{ fc | length }}
+
+        forecast: >
+          {% set response = forecast_hourly | default({}, true) %}
+          {% set fc = response
+            .get('weather.google_weather', {})
+            .get('forecast', []) or [] %}
+          {{ fc }}
+
+        periodos: >
+          {% set fc = forecast_hourly
+            .get('weather.google_weather', {})
+            .get('forecast', [])
+          %}
+        
+          {% set ns = namespace(attrs={}) %}
+        
+          {% for i in range(0, 4) %}
+            {% if i < (fc | length) %}
+              {% set item = fc[i] %}
+              {% set ns.attrs = ns.attrs | combine({
+                ('datetime' ~ i): item.datetime | string,
+                ('time' ~ i): (as_datetime(item.datetime) | as_local).strftime('%H:%M'),
+                ('precipt_prob' ~ i): item.precipitation_probability | float(0),
+                ('precipitation' ~ i): item.precipitation | float(0),
+                ('temperature' ~ i): item.temperature | float(0)
+              }) %}
+            {% endif %}
+          {% endfor %}
+        
+          {{ ns.attrs }}
+
+# ============================================================
+#  CUSTOM FORECAST DAILY (Trigger-based Template Sensor)
+# ============================================================
+- trigger:
+    - platform: time_pattern
+      hours: "/1"
+    - platform: homeassistant
+      event: start
+
+    # 🔥 Trigger manual (você dispara quando quiser)
+    - platform: event
+      event_type: refresh_custom_forecast_daily
+
+  action:
+    - service: weather.get_forecasts
+      target:
+        entity_id: weather.google_weather
+      data:
+        type: daily
+      response_variable: forecast_daily
+
+  sensor:
+    - name: "Custom Forecast Daily"
+      unique_id: custom_forecast_daily
+      icon: mdi:weather-cloudy-clock
+      state: "{{ now().timestamp() | int(0) }}"
+
+      variables:
+        icon_base: "/local/weather_google/"
+
+        # Lista de forecast (fallback seguro)
+        fc: >
+          {% set data = forecast_daily.get('weather.google_weather', {}) if forecast_daily is defined else {} %}
+          {{ data.get('forecast', []) }}
+
+      attributes:
+        temperature_unit: "{{ state_attr('weather.google_weather', 'temperature_unit') | default('', true) }}"
+        precipitation_unit: "{{ state_attr('weather.google_weather', 'precipitation_unit') | default('', true) }}"
+
+        forecast: "{{ fc }}"
+
+        max_precipitation_today: >
+          {% set p = (fc[0].precipitation if (fc | count) > 0 else 0) %}
+          {{ p | float(0) }}
+
+        max_precipation_today: >
+          {% set p = (fc[0].precipitation if (fc | count) > 0 else 0) %}
+          {{ p | float(0) }}
+
+        datetime1: "{{ (fc[1].datetime if (fc | count) > 1 else '') }}"
+        condition1: "{{ (fc[1].condition if (fc | count) > 1 else '') }}"
+        temperature1: "{{ (fc[1].temperature if (fc | count) > 1 else 0) | float(0) }}"
+        low_temperature1: "{{ (fc[1].templow if (fc | count) > 1 else 0) | float(0) }}"
+        precipitation1: "{{ (fc[1].precipitation if (fc | count) > 1 else 0) | float(0) }}"
+        precipitation_prob1: "{{ (fc[1].precipitation_probability if (fc | count) > 1 else 0) | int(0) }}"
+        cond_icon1: >
+          {% set c = (fc[1].condition if (fc | count) > 1 else 'unknown') | lower | trim %}
+          {% set suffix = 'day' if is_state('sun.sun', 'above_horizon') else 'night' %}
+          {{ icon_base ~ c ~ '-' ~ suffix ~ '.svg' }}
+
+        datetime2: "{{ (fc[2].datetime if (fc | count) > 2 else '') }}"
+        condition2: "{{ (fc[2].condition if (fc | count) > 2 else '') }}"
+        temperature2: "{{ (fc[2].temperature if (fc | count) > 2 else 0) | float(0) }}"
+        low_temperature2: "{{ (fc[2].templow if (fc | count) > 2 else 0) | float(0) }}"
+        precipitation2: "{{ (fc[2].precipitation if (fc | count) > 2 else 0) | float(0) }}"
+        precipitation_prob2: "{{ (fc[2].precipitation_probability if (fc | count) > 2 else 0) | int(0) }}"
+        cond_icon2: >
+          {% set c = (fc[2].condition if (fc | count) > 2 else 'unknown') | lower | trim %}
+          {% set suffix = 'day' if is_state('sun.sun', 'above_horizon') else 'night' %}
+          {{ icon_base ~ c ~ '-' ~ suffix ~ '.svg' }}
+
+        datetime3: "{{ (fc[3].datetime if (fc | count) > 3 else '') }}"
+        condition3: "{{ (fc[3].condition if (fc | count) > 3 else '') }}"
+        temperature3: "{{ (fc[3].temperature if (fc | count) > 3 else 0) | float(0) }}"
+        low_temperature3: "{{ (fc[3].templow if (fc | count) > 3 else 0) | float(0) }}"
+        precipitation3: "{{ (fc[3].precipitation if (fc | count) > 3 else 0) | float(0) }}"
+        precipitation_prob3: "{{ (fc[3].precipitation_probability if (fc | count) > 3 else 0) | int(0) }}"
+        cond_icon3: >
+          {% set c = (fc[3].condition if (fc | count) > 3 else 'unknown') | lower | trim %}
+          {% set suffix = 'day' if is_state('sun.sun', 'above_horizon') else 'night' %}
+          {{ icon_base ~ c ~ '-' ~ suffix ~ '.svg' }}
+
+        datetime4: "{{ (fc[4].datetime if (fc | count) > 4 else '') }}"
+        condition4: "{{ (fc[4].condition if (fc | count) > 4 else '') }}"
+        temperature4: "{{ (fc[4].temperature if (fc | count) > 4 else 0) | float(0) }}"
+        low_temperature4: "{{ (fc[4].templow if (fc | count) > 4 else 0) | float(0) }}"
+        precipitation4: "{{ (fc[4].precipitation if (fc | count) > 4 else 0) | float(0) }}"
+        precipitation_prob4: "{{ (fc[4].precipitation_probability if (fc | count) > 4 else 0) | int(0) }}"
+        cond_icon4: >
+          {% set c = (fc[4].condition if (fc | count) > 4 else 'unknown') | lower | trim %}
+          {% set suffix = 'day' if is_state('sun.sun', 'above_horizon') else 'night' %}
+          {{ icon_base ~ c ~ '-' ~ suffix ~ '.svg' }}
+
+        datetime5: "{{ (fc[5].datetime if (fc | count) > 5 else '') }}"
+        condition5: "{{ (fc[5].condition if (fc | count) > 5 else '') }}"
+        temperature5: "{{ (fc[5].temperature if (fc | count) > 5 else 0) | float(0) }}"
+        low_temperature5: "{{ (fc[5].templow if (fc | count) > 5 else 0) | float(0) }}"
+        precipitation5: "{{ (fc[5].precipitation if (fc | count) > 5 else 0) | float(0) }}"
+        precipitation_prob5: "{{ (fc[5].precipitation_probability if (fc | count) > 5 else 0) | int(0) }}"
+        cond_icon5: >
+          {% set c = (fc[5].condition if (fc | count) > 5 else 'unknown') | lower | trim %}
+          {% set suffix = 'day' if is_state('sun.sun', 'above_horizon') else 'night' %}
+          {{ icon_base ~ c ~ '-' ~ suffix ~ '.svg' }}

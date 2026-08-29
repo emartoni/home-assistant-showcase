@@ -1,0 +1,71 @@
+{% macro tempo_atras(sensor, modo='relativo') %}
+  {% set dt = states(sensor) | as_datetime | as_local %}
+  {% if modo == 'hora' %}
+    {{ dt.strftime('%d/%m/%Y %H:%M') }}
+  {% else %}
+    {% set diff = now() - dt %}
+    {% set total_min = (diff.total_seconds() / 60) | int %}
+    {% set hh = (total_min / 60) | int %}
+    {% set mm = total_min % 60 %}
+    {% if hh >= 24 %}
+      {% set dias = (hh / 24) | int %}
+      há {{ dias }} dia{{ 's' if dias != 1 }}
+    {% elif hh > 0 and mm > 0 %}
+      há {{ hh }} hora{{ 's' if hh != 1 }} e {{ mm }} minuto{{ 's' if mm != 1 }}
+    {% elif hh > 0 %}
+      há {{ hh }} hora{{ 's' if hh != 1 }}
+    {% else %}
+      há {{ mm }} minuto{{ 's' if mm != 1 }}
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+{% macro tempo_atras_hora(sensor) %}
+  {% set dt = states(sensor) | as_datetime | as_local %}
+  {% set diff = now() - dt %}
+  {% set hh = (diff.total_seconds() / 3600) | int %}
+  {% if hh >= 24 %}
+    {% set dias = (hh / 24) | int %}
+    há {{ dias }} dia{{ 's' if dias != 1 }}
+  {% elif hh > 0 %}
+    há {{ hh }} hora{{ 's' if hh != 1 }}
+  {% else %}
+    há menos de 1 hora
+  {% endif %}
+{% endmacro %}
+
+{% macro tempo_falta(sensor, modo='relativo') %}
+  {% set dt = states(sensor) | as_datetime | as_local %}
+  {% if modo == 'hora' %}
+    {{ dt.strftime('%d/%m/%Y %H:%M') }}
+  {% else %}
+    {% set diff = dt - now() %}
+    {% set total_min = (diff.total_seconds() / 60) | int %}
+    {% set hh = (total_min / 60) | int %}
+    {% set mm = total_min % 60 %}
+    {% if hh >= 24 %}
+      {% set dias = (hh / 24) | int %}
+      em {{ dias }} dia{{ 's' if dias != 1 }}
+    {% elif hh > 0 and mm > 0 %}
+      em {{ hh }} hora{{ 's' if hh != 1 }} e {{ mm }} minuto{{ 's' if mm != 1 }}
+    {% elif hh > 0 %}
+      em {{ hh }} hora{{ 's' if hh != 1 }}
+    {% else %}
+      em {{ mm }} minuto{{ 's' if mm != 1 }}
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+{% macro tempo_falta_hora(sensor) %}
+  {% set dt = states(sensor) | as_datetime | as_local %}
+  {% set diff = dt - now() %}
+  {% set hh = (diff.total_seconds() / 3600) | int %}
+  {% if hh >= 24 %}
+    {% set dias = (hh / 24) | int %}
+    em {{ dias }} dia{{ 's' if dias != 1 }}
+  {% elif hh > 0 %}
+    em {{ hh }} hora{{ 's' if hh != 1 }}
+  {% else %}
+    em menos de 1 hora
+  {% endif %}
+{% endmacro %}

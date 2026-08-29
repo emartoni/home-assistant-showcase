@@ -1,0 +1,13 @@
+- resource: https://precos.petrobras.com.br/w/gasolina/sp
+  scan_interval: 604800
+  sensor:
+    - name: Preço Gasolina SP
+      unique_id: preco_gasolina_sp
+      select: "#telafinal-precofinal"
+      value_template: >
+        {{ value
+          | replace('R$', '')
+          | replace(',', '.')
+          | trim }}
+
+      unit_of_measurement: "R$/L"

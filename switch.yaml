@@ -1,0 +1,6 @@
+# Define o número do pino do Rasp que controla o FAN
+- platform: rpi_gpio
+  switches:
+    - port: 14
+      name: "RPI Cooling Fan"
+      unique_id: "rpi_cooling_fan"
