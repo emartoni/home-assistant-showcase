@@ -112,8 +112,8 @@
         # ----------------------------
         weather: >
           {% if chuva_mm > 0 %}
-            {% if noite %}chuvosa 🌧
-            {% else %}chuvoso 🌧
+            {% if noite %}chuvosa ☔
+            {% else %}chuvoso ☔
             {% endif %}
           {% elif 'cloud' in tempo or tempo in ['cloudy', 'overcast', 'partly_cloudy', 'partly cloudy', 'scattered clouds', 'broken clouds'] %}
             {% if noite %}nublada ☁️
