@@ -13,7 +13,7 @@
         {% set zone_entity = state_attr('sensor.creta_local_inteligente', 'zone_entity') %}
 
         {% if s == 'Em casa' %}mdi:home
-        {% elif s == 'Em trânsito' %}mdi:car
+        {% elif s == 'Localização Indisponível' %}mdi:map-marker-off
         {% elif zone_entity %}
             {{ state_attr(zone_entity, 'icon') }}
         {% elif s == 'Hospital' %}mdi:hospital
@@ -33,8 +33,8 @@
       {# 🏠 EM CASA #}
       {% if is_state('device_tracker.creta_location', 'home') %}Em casa
 
-      {# 🚗 SEM LOCALIZAÇÃO VÁLIDA #}
-      {% elif raw in ['unknown','unavailable','none',''] %}Em trânsito
+      {# SEM LOCALIZAÇÃO VÁLIDA #}
+      {% elif raw in ['unknown','unavailable','none',''] %}Localização Indisponível
 
       {# 📍 AMENITY DETECTADO #}
       {% elif addr and addr.amenity is defined and addr.amenity %}
@@ -117,7 +117,7 @@
         {% set zone_entity = state_attr('sensor.creta_local_inteligente', 'zone_entity') %}
 
         {% if s == 'Em casa' %}mdi:home
-        {% elif s == 'Em trânsito' %}mdi:car
+        {% elif s == 'Localização Indisponível' %}mdi:map-marker-off
         {% elif zone_entity %}
           {{ state_attr(zone_entity, 'icon') }}
         {% elif s == 'Hospital' %}mdi:hospital
@@ -135,7 +135,7 @@
         {% set zone_entity = state_attr('sensor.creta_local_inteligente', 'zone_entity') %}
 
         {% if s == 'Em casa' %}var(--success-color)
-        {% elif s == 'Em trânsito' %}var(--warning-color)
+        {% elif s == 'Localização Indisponível' %}var(--warning-color)
         {% elif zone_entity %}var(--info-color)
         {% else %}var(--error-color)
         {% endif %}

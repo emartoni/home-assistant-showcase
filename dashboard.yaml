@@ -275,7 +275,7 @@ decluttering_templates:
                 \ || 'red';\n]]]\n"
               state_unavailable: Indisponível
               state_unknown: Indisponível
-              state_off: Indisponível
+              state_off: Crítica
               inline_layout: true
               show_current: false
               compact: true
@@ -1317,16 +1317,16 @@ views:
             \  const humidityValid = Number.isFinite(humidityNumber);\n\n  const precipLine\
             \ = precipValid\n    ? `${precipNumber} <span style=\"font-size:0.6em\"\
             >${precipUnit}</span>`\n    : 'Indisponível';\n  const precipColor = precipNumber\
-            \ > 0 \n    ? 'dodgerblue'\n    : 'black';\n\n  const humidityLine = humidityValid\n\
-            \    ? `${humidityNumber}%`\n    : 'Indisponível';\n  const humidityColor\
-            \ = humidityNumber > 70\n    ? 'deepskyblue'\n    : 'black';\n\n  return\
-            \ `\n          <ha-icon icon=\"mdi:weather-rainy\"\n            style=\"\
+            \ > 0 \n    ? 'dodgerblue'\n    : 'var(--text-color)';\n\n  const humidityLine\
+            \ = humidityValid\n    ? `${humidityNumber}%`\n    : 'Indisponível';\n\
+            \  const humidityColor = humidityNumber > 70\n    ? 'deepskyblue'\n  \
+            \  : 'var(--text-color)';\n\n  return `\n          <ha-icon icon=\"mdi:weather-rainy\"\
+            \n            style=\"\n              width: 16px;\n              height:\
+            \ 16px;\n              color: ${precipColor};\n            \"></ha-icon>\n\
+            \          ${precipLine}\n          <br />\n          <span style=\"font-size:0.8em\"\
+            >\n          <ha-icon icon=\"mdi:water-percent\"\n            style=\"\
             \n              width: 16px;\n              height: 16px;\n          \
-            \    color: ${precipColor};\n            \"></ha-icon>\n          ${precipLine}\n\
-            \          <br />\n          <span style=\"font-size:0.8em\">\n      \
-            \    <ha-icon icon=\"mdi:water-percent\"\n            style=\"\n     \
-            \         width: 16px;\n              height: 16px;\n              color:\
-            \ deepskyblue\n            \"></ha-icon>\n          ${humidityLine}\n\
+            \    color: deepskyblue\n            \"></ha-icon>\n          ${humidityLine}\n\
             \          </span>\n          `;\n]]]\n"
         styles:
           grid:
@@ -1419,8 +1419,8 @@ views:
         name: Temperatura
         icon: mdi:thermometer
         color: accent
-        hide_state: false
-        state_content: last_updated
+        show_entity_picture: false
+        hide_state: true
         vertical: false
         features:
         - type: temperature-forecast
@@ -1861,6 +1861,29 @@ views:
           carduso:
           - margin-top: -5px
           - padding-left: 5px
+    - type: tile
+      grid_options:
+        columns: 12
+        rows: 2
+      entity: climate.rpi_cooling_fan_controller
+      name: Cooler Raspberry PI
+      icon: mdi:fan
+      state_content:
+      - state
+      - current_temperature
+      - temperature
+      vertical: false
+      features:
+      - type: target-temperature
+      - style: icons
+        type: climate-hvac-modes
+      features_position: inline
+      card_mod:
+        style: "ha-state-icon {\n  {% set status = states('switch.rpi_cooling_fan')\
+          \ %}\n  {% if status == 'on' %}    \n    animation: spin 3s linear infinite;\n\
+          \  {% endif %}\n}\n@keyframes spin {\n  0% { transform: rotate(0deg); }\n\
+          \  50% { transform: rotate(180deg); }\n  100% { transform: rotate(360deg);\
+          \ }\n}\n"
   - type: grid
     cards:
     - type: custom:mushroom-title-card
@@ -1871,21 +1894,6 @@ views:
     - type: custom:decluttering-card
       template: rpi_status
   badges:
-  - type: entity
-    show_name: true
-    show_state: true
-    show_icon: true
-    entity: sensor.active_issues
-    name: Reparo
-    icon: mdi:wrench
-    visibility:
-    - condition: numeric_state
-      entity: sensor.active_issues
-      above: 0
-    hold_action:
-      action: perform-action
-      perform_action: homeassistant.restart
-      target: {}
   - type: custom:mushroom-template-badge
     content: "{% set raw = states(entity) %}\n\n{% if raw in ['unknown', 'unavailable',\
       \ 'none', ''] %}\n  Indisponível\n{% else %}\n  {{ raw | int(0) }} pendentes\n\
@@ -3746,37 +3754,35 @@ views:
             - height: 45px
       - type: custom:button-card
         name: Payback
-        show_state: true
+        show_state: false
         color: coral
         icon: mdi:cash-multiple
         entity: sensor.retorno_do_investimento_solar
-        state_display: "[[[\n    const stateRaw = entity?.state;\n    const state\
-          \ = Number(stateRaw);\n\n    if (!Number.isFinite(state)) {\n      return\
-          \ 'Indisponível';\n    }\n\n    return `${state.toFixed(0)}%`\n]]]\n"
         custom_fields:
           chart:
             card:
-              type: custom:mini-graph-card
-              entities:
-              - entity: sensor.retorno_do_investimento_solar
-                color: coral
-              height: 120
-              hours_to_show: 360
-              group_by: date
-              show:
-                name: false
-                icon: false
-                state: false
-                points: false
-                labels: false
-                graph: bar
+              type: custom:ring-tile
+              entity: sensor.retorno_do_investimento_solar
+              ring_only: true
+              ring_size: 2
+              ring_type: open
+              indicator: arc
+              colourise_icon: true
+              top_element: icon
+              middle_element: value
+              bottom_element: unit
+              colour:
+                25%: ha_red
+                50%: ha_orange
+                75%: ha_green
+              tweaks:
+                rt-ring-svg-size: 70px
               card_mod:
-                style: 'ha-card { border: none; }
-
-                  '
+                style: "ha-card {\n  border: none;\n}\n* {\n  --rt-font-family: var(--ha-font-family-body);\n\
+                  }\n"
         styles:
           grid:
-          - grid-template-areas: '"i n" "s s" "txt txt" "chart chart"'
+          - grid-template-areas: '"i n" "chart chart"'
           - grid-template-columns: 25px 1fr
           card:
           - padding: 0px 5px 5px 5px
@@ -3794,8 +3800,8 @@ views:
           - justify-self: center
           custom_fields:
             chart:
-            - margin-top: -4px
-            - height: 45px
+            - margin-top: -10px
+            - height: 80px
     - type: custom:vertical-stack-in-card
       cards:
       - type: custom:decluttering-card
@@ -5757,6 +5763,16 @@ views:
           timeline:
           - text-align: left
           - width: 100%
+    - type: logbook
+      target:
+        entity_id:
+        - device_tracker.creta_location
+      name_detail: device
+      theme: Mushroom
+      grid_options:
+        columns: 12
+        rows: 4
+      hours_to_show: 168
   - type: grid
     cards:
     - type: heading
@@ -6394,6 +6410,232 @@ views:
       card_mod:
         style: "@media (max-width: 800px) {\n  [id=\"car\"] {\n    display: none !important;\n\
           \  }\n}\n"
+    - type: horizontal-stack
+      cards:
+      - type: custom:button-card
+        name: Uso da Rede
+        show_state: true
+        icon: mdi:theme-light-dark
+        state:
+        - value: 50
+          operator: <=
+          color: deepskyblue
+        - operator: default
+          color: red
+        entity: sensor.percentual_de_custo_noturno
+        state_display: "[[[\n    const stateRaw = entity?.state;\n    const state\
+          \ = Number(stateRaw);\n\n    if (!Number.isFinite(state)) {\n      return\
+          \ 'Indisponível';\n    }\n\n    return `${state.toFixed(0)}%`\n]]]\n"
+        custom_fields:
+          chart:
+            card:
+              type: custom:entity-progress-card-template
+              entity: sensor.percentual_de_custo_noturno
+              icon: mdi:washing-machine
+              name: "{% set raw = states(entity) %}\n{% if raw in ['unknown', 'unavailable',\
+                \ 'none', ''] %}\n  {% set text = 'Indisponível' %}\n{% else %}\n\
+                \  {% if raw|float(0) > 50 %}\n    {% set text = 'Consumo da rede'\
+                \ %}\n  {% else %}\n    {% set text = 'Consumo solar' %}\n  {% endif\
+                \ %}\n{% endif %}\n\n<span style=\"\n  display:inline-block;\n  width:100%;\n\
+                \  text-align:center;\n  font-weight:normal;\n  font-size: 10px\n\"\
+                >{{ text }}</span>\n"
+              force_circular_background: false
+              reverse_secondary_info_row: false
+              bar_size: medium
+              watermark:
+                type: triangle
+                low: 50
+                low_color: black
+                disable_high: true
+              hide:
+              - icon
+              - value
+              - secondary_info
+              bar_effect:
+              - radius
+              percent: '{{states(entity)}}'
+              frameless: true
+              marginless: true
+              bar_color: "{% set raw = states(entity) %}\n{% if raw in ['unknown',\
+                \ 'unavailable', 'none', ''] %}\n  {% set color = 'grey' %}\n{% else\
+                \ %}\n  {% if raw|float(0) > 50 %}\n    {% set color = 'red' %}\n\
+                \  {% else %}\n    {% set color = 'deepskyblue' %}\n  {% endif %}\n\
+                {% endif %}\n{{ color }}\n"
+        styles:
+          grid:
+          - grid-template-areas: '"i n" "s s" "chart chart"'
+          - grid-template-columns: 25px 1fr
+          card:
+          - padding: 0px 5px 5px 5px
+          - height: 110px
+          icon:
+          - width: 15px
+          name:
+          - font-size: 12px
+          - font-weight: 500
+          - justify-self: start
+          - margin-bottom: 0px
+          state:
+          - font-size: 22px
+          - font-weight: 700
+          - justify-self: center
+          custom_fields:
+            chart:
+            - margin-top: -4px
+            - height: 45px
+      - type: custom:button-card
+        name: Economia Hoje
+        show_state: true
+        icon: mdi:solar-power
+        color: green
+        entity: sensor.percentual_conta_compensada
+        state_display: "[[[\n    const stateRaw = entity?.state;\n    const state\
+          \ = Number(stateRaw);\n\n    if (!Number.isFinite(state)) {\n      return\
+          \ 'Indisponível';\n    }\n\n    return `${state.toFixed(0)}%`\n]]]\n"
+        custom_fields:
+          chart:
+            card:
+              type: custom:mini-graph-card
+              entities:
+              - entity: sensor.percentual_conta_compensada
+              height: 120
+              bar_spacing: 5
+              color_thresholds:
+              - value: 20
+                color: red
+              - value: 50
+                color: orange
+              - value: 70
+                color: green
+              show:
+                name: false
+                icon: false
+                state: false
+                points: false
+                labels: false
+              card_mod:
+                style: 'ha-card { border: none; }
+
+                  '
+        styles:
+          grid:
+          - grid-template-areas: '"i n" "s s" "txt txt" "chart chart"'
+          - grid-template-columns: 25px 1fr
+          card:
+          - padding: 0px 5px 5px 5px
+          - height: 110px
+          icon:
+          - width: 15px
+          name:
+          - font-size: 12px
+          - font-weight: 500
+          - justify-self: start
+          - margin-bottom: 0px
+          state:
+          - font-size: 22px
+          - font-weight: 700
+          - justify-self: center
+          custom_fields:
+            chart:
+            - margin-top: -4px
+            - height: 45px
+      - type: custom:button-card
+        name: Payback
+        show_state: true
+        color: coral
+        icon: mdi:cash-multiple
+        entity: sensor.retorno_do_investimento_solar
+        state_display: "[[[\n    const stateRaw = entity?.state;\n    const state\
+          \ = Number(stateRaw);\n\n    if (!Number.isFinite(state)) {\n      return\
+          \ 'Indisponível';\n    }\n\n    return `${state.toFixed(0)}%`\n]]]\n"
+        custom_fields:
+          chart:
+            card:
+              type: custom:mini-graph-card
+              entities:
+              - entity: sensor.retorno_do_investimento_solar
+                color: coral
+              height: 120
+              hours_to_show: 360
+              group_by: date
+              show:
+                name: false
+                icon: false
+                state: false
+                points: false
+                labels: false
+                graph: bar
+              card_mod:
+                style: 'ha-card { border: none; }
+
+                  '
+        styles:
+          grid:
+          - grid-template-areas: '"i n" "s s" "txt txt" "chart chart"'
+          - grid-template-columns: 25px 1fr
+          card:
+          - padding: 0px 5px 5px 5px
+          - height: 110px
+          icon:
+          - width: 15px
+          name:
+          - font-size: 12px
+          - font-weight: 500
+          - justify-self: start
+          - margin-bottom: 0px
+          state:
+          - font-size: 22px
+          - font-weight: 700
+          - justify-self: center
+          custom_fields:
+            chart:
+            - margin-top: -4px
+            - height: 45px
+      - type: custom:button-card
+        name: Payback
+        show_state: false
+        color: coral
+        icon: mdi:cash-multiple
+        entity: sensor.retorno_do_investimento_solar
+        custom_fields:
+          chart:
+            card:
+              type: custom:ring-tile
+              entity: sensor.retorno_do_investimento_solar
+              ring_only: true
+              ring_size: 2
+              ring_type: closed
+              colour:
+                25%: ha_red
+                50%: ha_orange
+                75%: ha_green
+              tweaks:
+                rt-ring-svg-size: 65px
+              card_mod:
+                style: "ha-card {\n  padding: 0px !important;\n  margin: 0px !important;\n\
+                  \  border: none;\n}\n"
+        styles:
+          grid:
+          - grid-template-areas: '"i n" "chart chart"'
+          - grid-template-columns: 25px 1fr
+          card:
+          - padding: 0px 5px 5px 5px
+          - height: 110px
+          icon:
+          - width: 15px
+          name:
+          - font-size: 12px
+          - font-weight: 500
+          - justify-self: start
+          - margin-bottom: 0px
+          state:
+          - font-size: 22px
+          - font-weight: 700
+          - justify-self: center
+          custom_fields:
+            chart:
+            - margin-top: -4px
+            - height: 75px
   - type: grid
     cards:
     - square: false
