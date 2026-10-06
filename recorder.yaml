@@ -7,19 +7,23 @@
 # Estratégia utilizada:
 #   - Domínios de controle são incluídos integralmente;
 #   - Sensores são incluídos individualmente;
-#   - Entidades de interface, comandos, câmeras e diagnósticos
-#     sem valor histórico são excluídos.
+#   - Qualquer entidade fora do "include" já é descartada
+#     automaticamente. O "exclude" só é necessário para remover
+#     entidades de um domínio incluído integralmente.
 #
-# Como sensor não está incluído integralmente em "domains",
-# somente os sensores listados explicitamente em "entities"
-# terão histórico gravado.
+# Histórico bruto x estatísticas:
+#   Sensores com state_class geram estatísticas de longo prazo
+#   (5 min / 1 h) que NÃO são apagadas pelo purge. O
+#   purge_keep_days afeta somente o histórico detalhado.
 # ============================================================
 
-# Quantidade de dias mantidos no banco de dados.
-purge_keep_days: 30
+# Dias de histórico detalhado. Tendências longas ficam nas
+# estatísticas de longo prazo. (alterado: 30 -> 14)
+purge_keep_days: 14
 
 # Intervalo, em segundos, entre commits no banco de dados.
-# Um valor maior reduz operações de escrita no armazenamento.
+# Trade-off: até 30 s de perda em queda de energia e atraso
+# equivalente para sensores SQL que leem a tabela "states".
 commit_interval: 30
 
 include:
@@ -46,9 +50,9 @@ include:
     # --------------------------------------------------------
 
     # Produção e estado do inversor Solis.
+    # (removido: inverter_ac_power em W, duplicado por inverter_ac_power_kw)
     - sensor.garagem_inversor_solis_inverter_generation_today
     - sensor.garagem_inversor_solis_inverter_generation_this_month
-    - sensor.garagem_inversor_solis_inverter_ac_power
     - sensor.garagem_inversor_solis_inverter_dc_power
     - sensor.solis_inverter_0578_inverter_temperature
     - sensor.solis_inverter_0578_inverter_status
@@ -62,13 +66,9 @@ include:
     - sensor.inverter_dc_power_kw
 
     # Previsão de produção solar.
+    # (removido: day_3 a day_7, atributos pesados e sem uso histórico)
     - sensor.solcast_pv_forecast_forecast_today
     - sensor.solcast_pv_forecast_forecast_tomorrow
-    - sensor.solcast_pv_forecast_forecast_day_3
-    - sensor.solcast_pv_forecast_forecast_day_4
-    - sensor.solcast_pv_forecast_forecast_day_5
-    - sensor.solcast_pv_forecast_forecast_day_6
-    - sensor.solcast_pv_forecast_forecast_day_7
     - sensor.solcast_pv_forecast_peak_forecast_today
 
     # Fluxo de energia e balanço diário.
@@ -233,11 +233,11 @@ include:
     # --------------------------------------------------------
 
     # Testes de velocidade.
+    # (removido: ookla_speedtest_server, texto sem valor histórico)
     - sensor.ookla_speedtest_ping
     - sensor.ookla_speedtest_download
     - sensor.ookla_speedtest_upload
-    - sensor.ookla_speedtest_server
-    - sensor.ookla_speedtest_download_plan_compliance
+    - sensor.ookla_speedtest_download_plan_compliance   # fonte dos sensores statistics
     - sensor.ookla_speedtest_upload_plan_compliance
 
     # Qualidade da conexão.
@@ -260,9 +260,9 @@ include:
     # --------------------------------------------------------
 
     # Estado, posição e atualização do veículo.
+    # (removido: creta_timeline, já é derivado do histórico via SQL)
     - sensor.creta_last_updated_at
-    - sensor.creta_timeline
-    - sensor.creta_local_inteligente
+    - sensor.creta_local_inteligente   # fonte do SQL creta_timeline — NÃO remover
     - device_tracker.creta_location
 
     # Combustível, bateria e autonomia.
@@ -274,16 +274,17 @@ include:
     - sensor.creta_odometer
     - sensor.creta_last_trip_cost
 
+
     # --------------------------------------------------------
     # CÂMERAS E SEGURANÇA
     # --------------------------------------------------------
 
     # Contadores de câmeras.
+    # (removido: cameras_offline_lista, texto; contadores já cobrem)
     - sensor.total_cameras_off_template
     - sensor.total_cameras_on_template
     - sensor.total_cameras_off_frente
     - sensor.total_cameras_off_quintal
-    - sensor.cameras_offline_lista
 
 
     # --------------------------------------------------------
@@ -327,68 +328,13 @@ include:
 
 # ----------------------------------------------------------
 # ENTIDADES EXCLUÍDAS DO HISTÓRICO
+#
+# Só tem efeito sobre domínios incluídos integralmente acima
+# (light, switch, binary_sensor...). Domínios e sensores fora
+# do "include" já não são gravados, por isso as listas antigas
+# de domínios, câmeras e sensores de interface foram removidas.
 # ----------------------------------------------------------
 
 exclude:
-  domains:
-    # Domínios que representam ações, comandos, eventos,
-    # configurações, previsões ou dados sem valor histórico
-    # contínuo para este dashboard.
-    - automation
-    - script
-    - scene
-    - update
-    - button
-    - number
-    - select
-    - text
-    - weather
-    - zone
-    - sun
-
   entities:
-
-    # --------------------------------------------------------
-    # SENSORES DE INTERFACE E APRESENTAÇÃO
-    #
-    # São usados para exibição no dashboard e não representam
-    # dados históricos relevantes.
-    # --------------------------------------------------------
-
-    - sensor.custom_welcome_card
-    - sensor.custom_weather
-    - sensor.custom_forecast_daily
-    - sensor.time
-    - sensor.date
-    - sensor.date_time
-    - sensor.date_time_iso
-    - sensor.internet_time
-
-
-    # --------------------------------------------------------
-    # CÂMERAS
-    #
-    # As entidades camera representam streams e imagens.
-    # O histórico do stream não agrega valor ao recorder.
-    # Os sensores de energia e status das câmeras permanecem
-    # incluídos separadamente.
-    # --------------------------------------------------------
-
-    - camera.frente_direita_mainstream
-    - camera.frente_direita_substream
-    - camera.frente_esquerda_mainstream
-    - camera.frente_esquerda_substream
-    - camera.garagem_mainstream
-    - camera.garagem_substream
-    - camera.quintal_direita_mainstream
-    - camera.quintal_direita_substream
-    - camera.quintal_esquerda_mainstream
-    - camera.quintal_esquerda_substream
-
-
-    # --------------------------------------------------------
-    # ENTIDADES ESPECÍFICAS SEM HISTÓRICO NECESSÁRIO
-    # --------------------------------------------------------
-
     - binary_sensor.s25_ultra_device_locked
-    - sensor.s25_ultra_network_type

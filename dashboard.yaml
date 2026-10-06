@@ -5101,6 +5101,9 @@ views:
       grid_options:
         columns: 6
         rows: auto
+    - type: custom:mushroom-entity-card
+      entity: switch.tomada_dupla_inteligente_usb_c_socket_2
+      name: Tomada Repetidor
   - type: grid
     cards:
     - type: heading
@@ -5117,25 +5120,24 @@ views:
           {% if state == "closed" %}Fechado
 
           {% else %}Aberto{% endif %}'
-        icon: mdi:garage
+        icon: '{% set state = states(entity) %}
+
+          {% if state == "closed" %}mdi:garage
+
+          {% else %}mdi:garage-open{% endif %}'
         features_position: bottom
         entity: cover.portao_garagem_door
         grid_options:
           columns: 12
           rows: 1
+        badge_color: '{% set state = states(entity) %}
+
+          {% if state != "closed" %}red{% endif %}'
         color: '{% set state = states(entity) %}
 
           {% if state == "closed" %}green
 
           {% else %}red{% endif %}'
-        icon_tap_action:
-          action: more-info
-        badge_icon: '{% set state = states(entity) %}
-
-          {% if state != "closed" %}mdi:alert{% endif %}'
-        badge_color: '{% set state = states(entity) %}
-
-          {% if state != "closed" %}orange{% endif %}'
       - type: custom:decluttering-card
         template: camera_status
         variables:
